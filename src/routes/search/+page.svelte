@@ -205,7 +205,7 @@
 		<Card.Header>
 			<Card.Title class="text-2xl">Applicant Search</Card.Title>
 			<Card.Description>
-				Search by name, then click to analyse a single applicant or select multiple to consolidate.
+				Search by name, then click to analyse a single applicant -or select multiple checkboxes to group name variants (e.g. "Siemens AG" + "Siemens Ltd") into a single analysis.
 			</Card.Description>
 		</Card.Header>
 		<Card.Content>
@@ -254,7 +254,7 @@
 								{/if}
 							</Card.Title>
 							<Card.Description>
-								{elapsed}ms &middot; Click name to analyse, use checkboxes to consolidate
+								{elapsed}ms &middot; Click a name to analyse &middot; Use checkboxes to group name variants
 							</Card.Description>
 						</div>
 						<div class="flex gap-2">
@@ -307,7 +307,7 @@
 											onclick={() => setAsParent(applicant.name)}
 											class="text-[10px] text-muted-foreground hover:text-foreground underline"
 										>
-											parent
+											use as name
 										</button>
 									{/if}
 								</div>
@@ -339,10 +339,12 @@
 
 							<Separator />
 
+							<p class="text-xs text-muted-foreground">Display name for the grouped analysis:</p>
 							<label class="flex items-center gap-2 text-sm">
 								<input type="radio" name="parent-mode" checked={!useCustomParent}
 									onchange={() => { useCustomParent = false; }} class="accent-[var(--mtc-blue)]" />
-								Use parent: <span class="font-medium truncate">{parentName || '—'}</span>
+								<span class="font-medium truncate">{parentName || '-'}</span>
+								<span class="text-xs text-muted-foreground">(most filings)</span>
 							</label>
 							<label class="flex items-center gap-2 text-sm">
 								<input type="radio" name="parent-mode" checked={useCustomParent}

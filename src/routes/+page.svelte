@@ -37,7 +37,7 @@
 		</Card.Header>
 		<Card.Content class="space-y-4">
 			<p class="text-muted-foreground">
-				Search and analyse patent data from PATSTAT via BigQuery &mdash;
+				Search and analyse patent data from PATSTAT via BigQuery -
 				applicant trends, co-filing networks, citation flows, technology classifications.
 			</p>
 
@@ -93,7 +93,7 @@
 		</Button>
 		{#if status}
 			<span class="text-xs {status.ok ? 'text-green-600' : 'text-destructive'}">
-				{status.ok ? 'Connected' : 'Error'} &mdash; {status.message}
+				{status.ok ? 'Connected' : 'Error'} - {status.message}
 			</span>
 		{/if}
 	</div>

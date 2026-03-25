@@ -384,6 +384,15 @@
 					<div class="mt-2"><ConsolidatedNames {ctx} /></div>
 				{/if}
 			</Card.Description>
+			<details class="mt-2 text-xs text-muted-foreground">
+				<summary class="cursor-pointer hover:text-foreground transition-colors">What am I looking at?</summary>
+				<p class="mt-1.5 leading-relaxed">
+					Each circle represents an applicant. The <strong>center</strong> is your searched applicant.
+					Surrounding circles are co-applicants who filed patents together. <strong>Larger circles</strong>
+					= more shared patent families. <strong>Line thickness</strong> = strength of collaboration.
+					Colors indicate the co-applicant's country. Drag nodes to rearrange, scroll to zoom.
+				</p>
+			</details>
 		</Card.Header>
 		<Card.Content>
 			<form onsubmit={(e) => { e.preventDefault(); search(); }} class="flex gap-3">

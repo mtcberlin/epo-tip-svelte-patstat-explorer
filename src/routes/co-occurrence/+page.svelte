@@ -128,6 +128,14 @@
 					<br/>Navigate here from an applicant or technology view to see co-occurrences.
 				{/if}
 			</Card.Description>
+			<details class="mt-2 text-xs text-muted-foreground">
+				<summary class="cursor-pointer hover:text-foreground transition-colors">What am I looking at?</summary>
+				<p class="mt-1.5 leading-relaxed">
+					A 9×9 matrix of CPC technology sections (A=Human necessities, B=Transport, C=Chemistry, …, H=Electricity, Y=Emerging tech).
+					Each cell shows how many patent families are classified in <strong>both</strong> sections.
+					Darker cells = more overlap. This reveals an applicant's <strong>cross-disciplinary</strong> technology profile.
+				</p>
+			</details>
 		</Card.Header>
 	</Card.Root>
 

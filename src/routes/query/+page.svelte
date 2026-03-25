@@ -485,7 +485,7 @@ LIMIT 20"
 			<Card.Header class="flex-row items-center justify-between">
 				<div>
 					<Card.Title>{results.length} rows returned</Card.Title>
-					<Card.Description>{elapsed}ms</Card.Description>
+					<Card.Description>{elapsed}ms{columns.includes('appln_id') ? ' · Click a row for patent details' : ''}</Card.Description>
 				</div>
 				<Button variant="outline" size="sm" onclick={() => downloadCsv(results, 'query_results.csv')}>
 					Export CSV
