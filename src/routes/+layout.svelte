@@ -49,7 +49,57 @@
 		{@render children()}
 	</main>
 
-	<footer class="border-t py-6 text-center text-xs text-muted-foreground">
-		PATSTAT Explorer &mdash; mtc.berlin &middot; EPO TIP
+	<footer class="border-t bg-muted/30">
+		<div class="mx-auto max-w-7xl px-6 py-10">
+			<div class="grid gap-8 sm:grid-cols-3">
+				<!-- Brand -->
+				<div>
+					<div class="flex items-center gap-2 mb-3">
+						<img src="{base}/logo.svg" alt="" class="h-6 w-6" />
+						<span class="font-bold text-sm text-foreground">PATSTAT Explorer</span>
+					</div>
+					<p class="text-xs text-muted-foreground leading-relaxed">
+						Patent analysis &amp; visualization on EPO PATSTAT Global via BigQuery.
+					</p>
+					<p class="text-xs text-muted-foreground mt-2">
+						Data: EPO PATSTAT Global
+					</p>
+				</div>
+
+				<!-- Links -->
+				<div>
+					<h4 class="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Links</h4>
+					<ul class="space-y-1.5 text-xs">
+						<li><a href="{base}/about" class="text-muted-foreground hover:text-foreground transition-colors">About this app</a></li>
+						<li><a href="https://mtc.berlin" target="_blank" rel="noopener" class="text-muted-foreground hover:text-foreground transition-colors">mtc.berlin</a></li>
+						<li><a href="https://depa.tech" target="_blank" rel="noopener" class="text-muted-foreground hover:text-foreground transition-colors">depa.tech</a></li>
+						<li><a href="https://patentreports.depa.tech" target="_blank" rel="noopener" class="text-muted-foreground hover:text-foreground transition-colors">Patent Intelligence Reports</a></li>
+					</ul>
+				</div>
+
+				<!-- Contact -->
+				<div>
+					<h4 class="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Contact</h4>
+					<ul class="space-y-1.5 text-xs">
+						<li>
+							<a href="https://www.linkedin.com/in/arne-krueger/" target="_blank" rel="noopener"
+								class="text-muted-foreground hover:text-foreground transition-colors">
+								Arne Krueger &mdash; LinkedIn
+							</a>
+						</li>
+						<li>
+							<a href="https://calendly.com/arne-krueger-mtc" target="_blank" rel="noopener"
+								class="text-muted-foreground hover:text-foreground transition-colors">
+								Book a call
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class="mt-8 pt-6 border-t text-center text-xs text-muted-foreground">
+				&copy; {new Date().getFullYear()} <a href="https://mtc.berlin" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">mtc.berlin</a>
+			</div>
+		</div>
 	</footer>
 </div>
