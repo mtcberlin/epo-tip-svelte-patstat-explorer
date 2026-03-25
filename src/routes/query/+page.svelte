@@ -314,18 +314,21 @@
 					{#if chatHistory.length > 0 || generating}
 						<div class="space-y-3 max-h-80 overflow-y-auto">
 							{#each chatHistory as msg}
-								<div class="flex gap-3 {msg.role === 'user' ? '' : 'flex-row-reverse'}">
-									<div class="max-w-[85%] rounded-lg px-3 py-2 text-sm
-										{msg.role === 'user'
-											? 'bg-[var(--mtc-blue)] text-white'
-											: 'bg-muted text-foreground'}">
+								{#if msg.role === 'user'}
+									<div class="flex gap-3">
+										<div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-[var(--mtc-blue)] text-white">
+											{msg.content}
+										</div>
+									</div>
+								{:else}
+									<div class="w-full rounded-lg px-4 py-3 text-sm bg-muted text-foreground">
 										{msg.content}
 										{#if msg.steps && msg.steps.length > 0}
 											{@const mcpInfo = msg.steps.find(s => s.event === 'mcp_connected')}
-											<div class="mt-2 space-y-1 text-xs opacity-75">
+											<div class="mt-2.5 space-y-1.5 text-xs opacity-75">
 												{#if mcpInfo}
-													<div class="flex items-center gap-1.5 mb-1">
-														<span class="inline-flex items-center rounded bg-white/20 px-1 py-0.5 font-medium">MCP</span>
+													<div class="flex items-center gap-2 mb-1">
+														<span class="inline-flex items-center rounded-md bg-[var(--mtc-navy)] text-white px-1.5 py-0.5 font-medium">MCP</span>
 														<span>{mcpInfo.data.server}</span>
 													</div>
 												{/if}
@@ -333,14 +336,14 @@
 													<div class="flex items-center gap-1.5">
 														<span class="font-mono bg-black/10 rounded px-1">{step.data.name}</span>
 														{#if step.data.input && Object.keys(step.data.input).length > 0}
-															<span class="truncate max-w-48">{JSON.stringify(step.data.input)}</span>
+															<span class="break-all">{JSON.stringify(step.data.input)}</span>
 														{/if}
 													</div>
 												{/each}
 											</div>
 										{/if}
 									</div>
-								</div>
+								{/if}
 							{/each}
 							{#if generating}
 								<div class="flex gap-3 flex-row-reverse">
