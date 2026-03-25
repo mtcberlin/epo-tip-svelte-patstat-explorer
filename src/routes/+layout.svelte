@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
+	import ContextBar from '$lib/components/context-bar.svelte';
 
 	let { children } = $props();
 
@@ -41,6 +42,8 @@
 			</ul>
 		</nav>
 	</header>
+
+	<ContextBar />
 
 	<main class="mx-auto max-w-7xl px-6 py-8">
 		{@render children()}
