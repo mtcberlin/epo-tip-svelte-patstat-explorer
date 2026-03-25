@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { BarChart } from 'layerchart';
 	import { downloadCsv } from '$lib/csv';
+	import { parseContext, nameWhereClause } from '$lib/context';
+	import ConsolidatedNames from '$lib/components/consolidated-names.svelte';
+
+	const ctx = $derived(parseContext(page.url.searchParams));
+	const hasApplicantFilter = $derived(ctx.names.length > 0);
 
 	let query = $state('');
 	let topApplicants = $state<{ name: string; country: string; families: number }[]>([]);
@@ -36,6 +42,15 @@
 		const t0 = performance.now();
 		const escaped = cpc.replace(/'/g, "''");
 
+		// Optional applicant filter from context
+		const applicantJoin = hasApplicantFilter
+			? `JOIN tls207_pers_appln pa_ctx ON a.appln_id = pa_ctx.appln_id AND pa_ctx.applt_seq_nr > 0
+			   JOIN tls206_person p_ctx ON pa_ctx.person_id = p_ctx.person_id`
+			: '';
+		const applicantWhere = hasApplicantFilter
+			? `AND ${nameWhereClause(ctx, 'p_ctx')}`
+			: '';
+
 		try {
 			const [applicantData, trendData] = await Promise.all([
 				runQuery(`
@@ -46,8 +61,10 @@
 					JOIN tls201_appln a ON c.appln_id = a.appln_id
 					JOIN tls207_pers_appln pa ON a.appln_id = pa.appln_id
 					JOIN tls206_person p ON pa.person_id = p.person_id
+					${applicantJoin}
 					WHERE c.cpc_class_symbol LIKE '${escaped}%'
 					  AND pa.applt_seq_nr > 0
+					  ${applicantWhere}
 					GROUP BY p.person_name, p.person_ctry_code
 					ORDER BY families DESC
 					LIMIT 20
@@ -57,8 +74,10 @@
 						   COUNT(DISTINCT a.docdb_family_id) AS families
 					FROM tls224_appln_cpc c
 					JOIN tls201_appln a ON c.appln_id = a.appln_id
+					${applicantJoin}
 					WHERE c.cpc_class_symbol LIKE '${escaped}%'
 					  AND a.appln_filing_year BETWEEN 1990 AND 2024
+					  ${applicantWhere}
 					GROUP BY a.appln_filing_year
 					ORDER BY year
 				`)
@@ -85,6 +104,13 @@
 			<Card.Title class="text-2xl">Technology Search</Card.Title>
 			<Card.Description>
 				Search by CPC classification code. Shows top applicants and filing trends for the technology field.
+				{#if hasApplicantFilter}
+					<div class="mt-2 flex items-center gap-2">
+						<span class="text-xs text-muted-foreground">Filtered to:</span>
+						<ConsolidatedNames {ctx} />
+						<a href="{base}/technology" class="text-xs underline">(clear)</a>
+					</div>
+				{/if}
 			</Card.Description>
 			<details class="mt-2 text-xs text-muted-foreground">
 				<summary class="cursor-pointer hover:text-foreground transition-colors">What are CPC codes?</summary>
@@ -131,6 +157,9 @@
 							rel="noopener"
 							class="text-[var(--mtc-blue)] hover:underline"
 						>{query.trim().toUpperCase()} ↗</a>
+						{#if hasApplicantFilter}
+							<Badge variant="secondary" class="ml-2 text-xs">{ctx.label}</Badge>
+						{/if}
 					</Card.Title>
 					<Card.Description>{elapsed}ms</Card.Description>
 				</div>
@@ -157,7 +186,12 @@
 	{#if topApplicants.length > 0}
 		<Card.Root>
 			<Card.Header class="flex-row items-center justify-between">
-				<Card.Title>Top Applicants</Card.Title>
+				<Card.Title>
+					Top Applicants
+					{#if hasApplicantFilter}
+						<Badge variant="secondary" class="ml-2 text-xs">filtered</Badge>
+					{/if}
+				</Card.Title>
 				<Button variant="outline" size="sm" onclick={() => downloadCsv(topApplicants, `${query.trim()}_applicants.csv`)}>
 					Export CSV
 				</Button>
