@@ -62,7 +62,7 @@
 					It uses the
 					<a href="https://github.com/mtcberlin/mtc-patstat-mcp-lite" target="_blank" rel="noopener"
 						class="text-[var(--mtc-blue)] hover:underline">mtc.berlin PATSTAT MCP</a>
-					server to explore the database schema, build SQL, and execute queries — all visible
+					server to explore the database schema, build SQL, and execute queries -all visible
 					step by step. Bring your own Anthropic API key.
 				</p>
 			</div>
@@ -83,13 +83,13 @@
 			</p>
 			<p>
 				All analysis context (selected applicants, filters, consolidations) is encoded in the URL.
-				This means every view is bookmarkable and shareable — just copy the URL.
+				This means every view is bookmarkable and shareable -just copy the URL.
 			</p>
 			<p>
 				For the AI Query feature, the app runs a local
 				<a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" class="text-[var(--mtc-blue)] hover:underline">MCP</a>
 				(Model Context Protocol) server that gives Claude access to the PATSTAT schema.
-				Claude explores table structures, writes SQL, and runs queries — you can watch each step.
+				Claude explores table structures, writes SQL, and runs queries -you can watch each step.
 			</p>
 		</Card.Content>
 	</Card.Root>
@@ -103,27 +103,27 @@
 				and develop custom analysis tools. Let's talk about your use case.
 			</p>
 			<div class="flex flex-wrap gap-3 justify-center pt-2">
-				<Button
+				<a
 					href="https://calendly.com/arne-krueger-mtc"
-					variant="outline"
-					class="bg-white text-[var(--mtc-navy)] border-white hover:bg-white/90 hover:text-[var(--mtc-navy)]"
+					target="_blank" rel="noopener"
+					class="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-[var(--mtc-navy)] shadow-sm hover:bg-white/90 transition-colors"
 				>
 					Book a call
-				</Button>
-				<Button
+				</a>
+				<a
 					href="https://mtc.berlin"
-					variant="outline"
-					class="border-white/40 text-white hover:bg-white/10"
+					target="_blank" rel="noopener"
+					class="inline-flex items-center rounded-lg border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors"
 				>
 					mtc.berlin
-				</Button>
-				<Button
+				</a>
+				<a
 					href="https://patentreports.depa.tech"
-					variant="outline"
-					class="border-white/40 text-white hover:bg-white/10"
+					target="_blank" rel="noopener"
+					class="inline-flex items-center rounded-lg border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors"
 				>
 					Patent Intelligence Reports
-				</Button>
+				</a>
 			</div>
 		</Card.Content>
 	</Card.Root>

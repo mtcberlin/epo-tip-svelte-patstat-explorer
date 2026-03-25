@@ -205,7 +205,7 @@
 		<Card.Header>
 			<Card.Title class="text-2xl">Applicant Search</Card.Title>
 			<Card.Description>
-				Search by name, then click to analyse a single applicant — or select multiple checkboxes to group name variants (e.g. "Siemens AG" + "Siemens Ltd") into a single analysis.
+				Search by name, then click to analyse a single applicant -or select multiple checkboxes to group name variants (e.g. "Siemens AG" + "Siemens Ltd") into a single analysis.
 			</Card.Description>
 		</Card.Header>
 		<Card.Content>
@@ -343,7 +343,7 @@
 							<label class="flex items-center gap-2 text-sm">
 								<input type="radio" name="parent-mode" checked={!useCustomParent}
 									onchange={() => { useCustomParent = false; }} class="accent-[var(--mtc-blue)]" />
-								<span class="font-medium truncate">{parentName || '—'}</span>
+								<span class="font-medium truncate">{parentName || '-'}</span>
 								<span class="text-xs text-muted-foreground">(most filings)</span>
 							</label>
 							<label class="flex items-center gap-2 text-sm">
