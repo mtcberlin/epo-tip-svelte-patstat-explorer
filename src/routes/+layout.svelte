@@ -8,10 +8,10 @@
 
 	const nav = [
 		{ href: '/search', label: 'Applicants' },
-		{ href: '/text-search', label: 'Text Search' },
 		{ href: '/technology', label: 'Technology' },
 		{ href: '/countries', label: 'Countries' },
 		{ href: '/query', label: 'AI Query' },
+		{ href: '/about', label: 'About' },
 	];
 
 	function isActive(href: string) {

@@ -150,8 +150,11 @@
 		</Card.Root>
 	{:else if loading}
 		<Card.Root>
-			<Card.Content class="py-12 text-center text-muted-foreground">
-				Loading co-occurrence data...
+			<Card.Content class="py-12">
+				<div class="flex items-center justify-center gap-3 text-muted-foreground">
+					<div class="h-4 w-4 rounded-full border-2 border-[var(--mtc-blue)] border-t-transparent animate-spin"></div>
+					<span>Loading co-occurrence data...</span>
+				</div>
 			</Card.Content>
 		</Card.Root>
 	{:else if errorMsg}

@@ -174,7 +174,7 @@
 				</Card.Header>
 				<Card.Content>
 					{#if loading.trend}
-						<p class="text-sm text-muted-foreground">Loading trend data...</p>
+						<div class="flex items-center gap-2 text-sm text-muted-foreground"><div class="h-3.5 w-3.5 rounded-full border-2 border-[var(--mtc-blue)] border-t-transparent animate-spin"></div>Loading trend data...</div>
 					{:else if errors.trend}
 						<p class="text-sm text-destructive">{errors.trend}</p>
 					{:else if trend.length > 0}
@@ -201,7 +201,7 @@
 				</Card.Header>
 				<Card.Content>
 					{#if loading.jurisdictions}
-						<p class="text-sm text-muted-foreground">Loading jurisdiction data...</p>
+						<div class="flex items-center gap-2 text-sm text-muted-foreground"><div class="h-3.5 w-3.5 rounded-full border-2 border-[var(--mtc-blue)] border-t-transparent animate-spin"></div>Loading jurisdiction data...</div>
 					{:else if errors.jurisdictions}
 						<p class="text-sm text-destructive">{errors.jurisdictions}</p>
 					{:else if jurisdictions.length > 0}
@@ -229,7 +229,7 @@
 				</Card.Header>
 				<Card.Content>
 					{#if loading.cpc}
-						<p class="text-sm text-muted-foreground">Loading technology data...</p>
+						<div class="flex items-center gap-2 text-sm text-muted-foreground"><div class="h-3.5 w-3.5 rounded-full border-2 border-[var(--mtc-blue)] border-t-transparent animate-spin"></div>Loading technology data...</div>
 					{:else if errors.cpc}
 						<p class="text-sm text-destructive">{errors.cpc}</p>
 					{:else if cpcCodes.length > 0}

@@ -375,8 +375,16 @@
 
 	{#if loading}
 		<Card.Root>
-			<Card.Content class="py-12 text-center text-muted-foreground">
-				Analysing citations... This can take 30–60 seconds for large applicants.
+			<Card.Content class="py-12 space-y-4">
+				<div class="flex items-center justify-center gap-3 text-muted-foreground">
+					<div class="h-4 w-4 rounded-full border-2 border-[var(--mtc-blue)] border-t-transparent animate-spin"></div>
+					<span>Analysing citations... This can take 30-60 seconds for large applicants.</span>
+				</div>
+				<div class="space-y-2 max-w-md mx-auto">
+					<div class="h-3 rounded bg-muted animate-pulse"></div>
+					<div class="h-3 rounded bg-muted animate-pulse w-4/5"></div>
+					<div class="h-3 rounded bg-muted animate-pulse w-3/5"></div>
+				</div>
 			</Card.Content>
 		</Card.Root>
 	{/if}
