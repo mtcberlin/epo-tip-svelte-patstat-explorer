@@ -328,6 +328,15 @@
 					<div class="mt-2"><ConsolidatedNames {ctx} /></div>
 				{/if}
 			</Card.Description>
+			<details class="mt-2 text-xs text-muted-foreground">
+				<summary class="cursor-pointer hover:text-foreground transition-colors">What am I looking at?</summary>
+				<p class="mt-1.5 leading-relaxed">
+					A Sankey diagram showing citation flows. <strong>Forward citations</strong> (dependencies):
+					which prior art does this applicant reference? <strong>Backward citations</strong> (impact):
+					who references this applicant's patents? The middle column shows technology fields (CPC codes).
+					Flow thickness = number of citations. Toggle direction with the buttons above.
+				</p>
+			</details>
 		</Card.Header>
 		<Card.Content class="space-y-4">
 			<form onsubmit={(e) => { e.preventDefault(); search(); }} class="space-y-3">

@@ -86,6 +86,14 @@
 			<Card.Description>
 				Search by CPC classification code. Shows top applicants and filing trends for the technology field.
 			</Card.Description>
+			<details class="mt-2 text-xs text-muted-foreground">
+				<summary class="cursor-pointer hover:text-foreground transition-colors">What are CPC codes?</summary>
+				<p class="mt-1.5 leading-relaxed">
+					The Cooperative Patent Classification (CPC) organizes patents into technology areas.
+					Enter a code prefix like <strong>H01M</strong> (batteries), <strong>A61K</strong> (medical preparations),
+					or <strong>B60W</strong> (autonomous driving). Shorter prefixes (e.g. <strong>H01</strong>) cover broader fields.
+				</p>
+			</details>
 		</Card.Header>
 		<Card.Content>
 			<form onsubmit={(e) => { e.preventDefault(); search(); }} class="flex gap-3">
@@ -168,8 +176,8 @@
 							<Table.Row>
 								<Table.Cell>
 									<a
-										href="{base}/applicant?name={encodeURIComponent(row.name)}&country={encodeURIComponent(row.country)}"
-										class="font-medium hover:underline"
+										href="{base}/applicant?name={encodeURIComponent(row.name)}&country={encodeURIComponent(row.country)}&cpc={encodeURIComponent(query.trim().toUpperCase())}"
+										class="font-medium text-[var(--mtc-blue)] hover:underline"
 									>
 										{row.name}
 									</a>

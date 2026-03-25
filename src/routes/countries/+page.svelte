@@ -94,6 +94,14 @@
 			<Card.Description>
 				Compare patent filing trends across countries. Optionally filter by CPC technology field.
 			</Card.Description>
+			<details class="mt-2 text-xs text-muted-foreground">
+				<summary class="cursor-pointer hover:text-foreground transition-colors">How does this work?</summary>
+				<p class="mt-1.5 leading-relaxed">
+					Enter 2-letter country codes separated by commas (e.g. <strong>DE, US, CN, JP, KR</strong>).
+					Each country gets its own trend line showing patent families filed per year (2000–2024).
+					Add a CPC code in the optional filter to focus on a specific technology area.
+				</p>
+			</details>
 		</Card.Header>
 		<Card.Content class="space-y-4">
 			<form onsubmit={(e) => { e.preventDefault(); search(); }} class="space-y-3">

@@ -178,7 +178,7 @@
 			<Card.Header class="flex-row items-center justify-between">
 				<div>
 					<Card.Title>{results.length} patents found</Card.Title>
-					<Card.Description>{elapsed}ms &middot; max 50 results</Card.Description>
+					<Card.Description>{elapsed}ms &middot; max 50 results &middot; Click a patent for details</Card.Description>
 				</div>
 				<Button variant="outline" size="sm" onclick={() => downloadCsv(results, 'text_search.csv')}>
 					Export CSV
