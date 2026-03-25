@@ -6,10 +6,16 @@ Patent analysis and visualization platform for the EPO PATSTAT database on Googl
 
 ## Quick Start (TIP)
 
-The only file you need is `PATSTAT_Explorer.ipynb`. Place it in your TIP home directory and run the single cell — everything else is downloaded and installed automatically.
+The only file you need is [`PATSTAT_Explorer.ipynb`](PATSTAT_Explorer.ipynb).
+
+1. Download it from this repo (or: *File → Save Link As…* on the [raw link](https://raw.githubusercontent.com/mtcberlin/epo-tip-svelte-patstat-explorer/main/PATSTAT_Explorer.ipynb))
+2. Upload it to your TIP JupyterHub home directory
+3. Open it and run the single cell
+
+That's it. The notebook clones this repository into `~/patstat_svelte`, installs all dependencies (Node.js, MCP server, Python packages), builds the app, and starts three services. A clickable link to the PATSTAT Explorer appears when everything is ready.
 
 **First run (~1–2 min):** clones this repo, installs dependencies, builds the app, starts all services.
-**Subsequent runs (~10s):** pulls updates, starts services.
+**Subsequent runs (~10s):** pulls latest changes via `git pull`, starts services. The build step is skipped if no source files changed.
 
 To stop: run `stop()` in the notebook or restart the kernel.
 
