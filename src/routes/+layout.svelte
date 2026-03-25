@@ -84,8 +84,8 @@
 					<div>
 						<h4 class="font-semibold text-foreground mb-3">Contact</h4>
 						<ul class="space-y-2 text-muted-foreground">
-							<li><a href="https://www.linkedin.com/in/arne-krueger/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">LinkedIn</a></li>
-							<li><a href="https://calendly.com/arne-krueger-mtc" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Book a call</a></li>
+							<li><a href="https://www.linkedin.com/in/herrkrueger/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">LinkedIn</a></li>
+							<li><a href="https://calendly.com/herrkrueger/patent-intelligence" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Book a call</a></li>
 						</ul>
 					</div>
 				</div>

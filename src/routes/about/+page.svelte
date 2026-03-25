@@ -104,7 +104,7 @@
 			</p>
 			<div class="flex flex-wrap gap-3 justify-center pt-2">
 				<a
-					href="https://calendly.com/arne-krueger-mtc"
+					href="https://calendly.com/herrkrueger/patent-intelligence"
 					target="_blank" rel="noopener"
 					class="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-[var(--mtc-navy)] shadow-sm hover:bg-white/90 transition-colors"
 				>
