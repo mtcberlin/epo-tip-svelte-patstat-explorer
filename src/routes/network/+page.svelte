@@ -416,7 +416,23 @@
 		<div class="rounded-lg bg-destructive/10 p-4 text-sm text-destructive" role="alert">{errorMsg}</div>
 	{/if}
 
-	{#if coApplicants.length > 0}
+	{#if loading}
+		<Card.Root>
+			<Card.Content class="py-12 space-y-4">
+				<div class="flex items-center justify-center gap-3 text-muted-foreground">
+					<div class="h-4 w-4 rounded-full border-2 border-[var(--mtc-blue)] border-t-transparent animate-spin"></div>
+					<span>Finding co-applicants...</span>
+				</div>
+				<div class="space-y-2 max-w-md mx-auto">
+					<div class="h-3 rounded bg-muted animate-pulse"></div>
+					<div class="h-3 rounded bg-muted animate-pulse w-3/4"></div>
+					<div class="h-3 rounded bg-muted animate-pulse w-1/2"></div>
+				</div>
+			</Card.Content>
+		</Card.Root>
+	{/if}
+
+	{#if coApplicants.length > 0 && !loading}
 		<!-- Network Graph -->
 		<Card.Root>
 			<Card.Header class="flex-row items-center justify-between">
