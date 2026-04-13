@@ -7,7 +7,7 @@
 </script>
 
 <div class="min-h-screen bg-background text-foreground">
-	<header class="bg-[var(--mtc-navy)] text-white shadow-md">
+	<header class="bg-[var(--epo-red)] text-white shadow-md">
 		<nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
 			<a href="{base}/" class="flex items-center gap-3 transition-opacity hover:opacity-90">
 				<img src="{base}/logo.svg" alt="" class="h-8 w-8" />
@@ -28,7 +28,7 @@
 				<!-- Brand — spans 2 cols -->
 				<div class="col-span-2">
 					<div class="flex items-center gap-2.5 mb-3">
-						<img src="{base}/logo.svg" alt="" class="h-5 w-5 opacity-60" />
+						<img src="{base}/logo.svg" alt="" class="h-6 w-6" />
 						<span class="font-semibold text-sm text-foreground">TIP4PATLIBs PATSTAT Explorer</span>
 					</div>
 					<p class="text-xs text-muted-foreground leading-relaxed max-w-[260px]">
@@ -50,7 +50,7 @@
 				<div class="text-xs">
 					<h4 class="font-semibold text-foreground mb-3">EPO Data</h4>
 					<ul class="space-y-2 text-muted-foreground">
-						<li><a href="https://www.epo.org/en/searching-for-patents/data/technology-intelligence-platform" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">About Technology Intelligence Platform</a></li>
+						<li><a href="https://www.epo.org/en/searching-for-patents/data/technology-intelligence-platform" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Technology Intelligence Platform</a></li>
 						<li><a href="https://tip.epo.org/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Open Tip</a></li>
 						<li><a href="https://e-courses.epo.org/enrol/index.php?id=416" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">An Introduction to TIP</a></li>
 					</ul>
