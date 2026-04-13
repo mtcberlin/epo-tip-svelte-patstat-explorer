@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { tick } from 'svelte';
 	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
@@ -220,6 +221,12 @@
 		}
 	}
 
+	async function openInSqlTab(sql: string) {
+		mode = 'sql';
+		await tick();
+		sqlInput = sql;
+	}
+
 	// --- Key handlers ---
 	function handleNlKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
@@ -307,7 +314,7 @@
 				<Card.Content class="space-y-4 pt-4">
 					<!-- Chat history -->
 					{#if chatHistory.length > 0 || generating}
-						<div class="space-y-3 max-h-80 overflow-y-auto">
+						<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
 							{#each chatHistory as msg}
 								{#if msg.role === 'user'}
 									<div class="flex gap-3">
@@ -316,16 +323,17 @@
 										</div>
 									</div>
 								{:else}
+									{@const msgSql = msg.sql ?? ''}
 									<div class="w-full rounded-lg px-4 py-3 text-sm bg-muted text-foreground space-y-3">
 										<div>{msg.content}</div>
-										{#if msg.sql}
-											<pre class="rounded-lg bg-background border p-3 text-xs overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">{msg.sql}</pre>
+										{#if msgSql}
+											<pre class="rounded-lg bg-background border p-3 text-xs overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">{msgSql}</pre>
 											<div class="flex items-center gap-2">
-												<Button size="sm" onclick={() => executeSql(msg.sql)} disabled={loading}>
+												<Button size="sm" onclick={() => executeSql(msgSql)} disabled={loading}>
 													<Play class="size-3.5" />
 													{loading ? 'Running...' : 'Run'}
 												</Button>
-												<Button size="sm" variant="ghost" onclick={() => { sqlInput = msg.sql ?? ''; mode = 'sql'; }}>
+												<Button size="sm" variant="ghost" onclick={() => openInSqlTab(msgSql)}>
 													Edit in SQL tab
 												</Button>
 											</div>
