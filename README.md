@@ -12,7 +12,7 @@ The only file you need is [`PATSTAT_Explorer.ipynb`](PATSTAT_Explorer.ipynb).
 2. Upload it to your TIP JupyterHub home directory
 3. Open it and run the single cell
 
-That's it. The notebook clones this repository into `~/patstat_svelte`, installs all dependencies (Node.js, MCP server, Python packages), builds the app, and starts three services. A clickable link to the PATSTAT Explorer appears when everything is ready.
+That's it. The notebook clones this repository into `~/epo-tip-svelte-patstat-explorer`, installs all dependencies (Node.js, MCP server, Python packages), builds the app, and starts three services. A clickable link to the PATSTAT Explorer appears when everything is ready.
 
 **First run (~1–2 min):** clones this repo, installs dependencies, builds the app, starts all services.
 **Subsequent runs (~10s):** pulls latest changes via `git pull`, starts services. The build step is skipped if no source files changed.
