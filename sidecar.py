@@ -192,6 +192,18 @@ async def _run_agentic_loop(
             text_parts = [b.text for b in response.content if b.type == "text"]
             final_text = _extract_sql("\n".join(text_parts))
 
+            # Model sometimes stops without echoing the SQL (it already ran it via execute_query).
+            # Fall back to the last execute_query tool call so the client always has runnable SQL.
+            if not final_text:
+                final_text = _extract_last_sql_from_messages(messages) or ""
+
+            if not final_text:
+                yield {
+                    "event": "error",
+                    "data": {"message": "Agent finished without producing any SQL."},
+                }
+                return
+
             yield {
                 "event": "result",
                 "data": {"text": final_text, "iterations": iteration + 1},
