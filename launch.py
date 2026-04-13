@@ -100,12 +100,13 @@ def launch():
             ["node", "--version"], capture_output=True, text=True
         ).stdout.strip()
 
-        # 2. Auto-install mtc.berlin PATSTAT MCP
+        # 2. Auto-install mtc.berlin PATSTAT MCP + AI Query deps
         _log("Installing EPO TIP PATSTAT helper tools...")
         subprocess.run(
             [sys.executable, "-m", "pip", "install", "--user",
              "git+https://github.com/mtcberlin/mtc-patstat-mcp-lite.git",
-             "fastapi>=0.135"],
+             "fastapi>=0.135",
+             "anthropic>=0.40"],
             capture_output=True, text=True, check=True,
         )
         # Ensure ~/.local/bin is in PATH (pip --user installs scripts there)

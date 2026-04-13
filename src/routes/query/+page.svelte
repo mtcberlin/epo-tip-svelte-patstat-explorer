@@ -4,16 +4,12 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { Button } from '$lib/components/ui/button';
-	import { Badge } from '$lib/components/ui/badge';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Input } from '$lib/components/ui/input';
 	import { downloadCsv } from '$lib/csv';
 	import PatentDetailSheet from '$lib/components/patent-detail-sheet.svelte';
 	import Settings from '@lucide/svelte/icons/settings';
-	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Play from '@lucide/svelte/icons/play';
 	import Sparkles from '@lucide/svelte/icons/sparkles';
 	import DatabaseZap from '@lucide/svelte/icons/database-zap';
@@ -24,7 +20,6 @@
 	let nlInput = $state('');
 	let sqlInput = $state('');
 	let generatedSql = $state('');
-	let sqlOpen = $state(false);
 	let results = $state<Record<string, unknown>[]>([]);
 	let columns = $state<string[]>([]);
 	let loading = $state(false);
@@ -57,7 +52,7 @@
 
 	const models = [
 		{ value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-		{ value: 'claude-haiku-4-20250414', label: 'Claude Haiku 4' },
+		{ value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
 	];
 
 	// --- API helpers ---
@@ -106,24 +101,22 @@
 
 			for (const line of lines) {
 				if (!line.startsWith('data: ')) continue;
+				let event: AgentStep;
 				try {
-					const event = JSON.parse(line.slice(6)) as AgentStep;
-					if (event.event === 'done') continue;
+					event = JSON.parse(line.slice(6)) as AgentStep;
+				} catch {
+					// Malformed SSE line — skip it, but don't mask real backend errors.
+					continue;
+				}
+				if (event.event === 'done') continue;
 
-					steps.push(event);
-					agentSteps = [...steps];
+				steps.push(event);
+				agentSteps = [...steps];
 
-					if (event.event === 'result') {
-						resultText = String(event.data.text ?? '');
-					} else if (event.event === 'error') {
-						throw new Error(String(event.data.message ?? 'Agent error'));
-					}
-				} catch (e) {
-					if (e instanceof Error && e.message !== 'Agent error' && !e.message.includes('key')) {
-						// Parse error — ignore
-					} else {
-						throw e;
-					}
+				if (event.event === 'result') {
+					resultText = String(event.data.text ?? '');
+				} else if (event.event === 'error') {
+					throw new Error(String(event.data.message ?? 'Agent error'));
 				}
 			}
 		}
@@ -190,8 +183,10 @@
 
 		try {
 			const { text, steps } = await nlToSqlStream(q, apiHistory);
+			if (!text.trim()) {
+				throw new Error('The agent finished without producing any SQL. Try rephrasing your question.');
+			}
 			generatedSql = text;
-			sqlOpen = true;
 			chatHistory = [...chatHistory, { role: 'assistant', content: 'Generated SQL query.', sql: text, steps }];
 		} catch (e) {
 			errorMsg = e instanceof Error ? e.message : String(e);
@@ -321,11 +316,23 @@
 										</div>
 									</div>
 								{:else}
-									<div class="w-full rounded-lg px-4 py-3 text-sm bg-muted text-foreground">
-										{msg.content}
+									<div class="w-full rounded-lg px-4 py-3 text-sm bg-muted text-foreground space-y-3">
+										<div>{msg.content}</div>
+										{#if msg.sql}
+											<pre class="rounded-lg bg-background border p-3 text-xs overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">{msg.sql}</pre>
+											<div class="flex items-center gap-2">
+												<Button size="sm" onclick={() => executeSql(msg.sql)} disabled={loading}>
+													<Play class="size-3.5" />
+													{loading ? 'Running...' : 'Run'}
+												</Button>
+												<Button size="sm" variant="ghost" onclick={() => { sqlInput = msg.sql ?? ''; mode = 'sql'; }}>
+													Edit in SQL tab
+												</Button>
+											</div>
+										{/if}
 										{#if msg.steps && msg.steps.length > 0}
 											{@const mcpInfo = msg.steps.find(s => s.event === 'mcp_connected')}
-											<div class="mt-2.5 space-y-1.5 text-xs opacity-75">
+											<div class="space-y-1.5 text-xs opacity-75">
 												{#if mcpInfo}
 													<div class="flex items-center gap-2 mb-1">
 														<span class="inline-flex items-center rounded-md bg-[var(--mtc-navy)] text-white px-1.5 py-0.5 font-medium">MCP</span>
@@ -411,32 +418,6 @@
 								Add your Anthropic API key
 							</button> to use Natural Language mode.
 						</p>
-					{/if}
-
-					<!-- Generated SQL collapsible -->
-					{#if generatedSql}
-						<Collapsible.Root bind:open={sqlOpen}>
-							<div class="flex items-center gap-2">
-								<Collapsible.Trigger class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-									{#if sqlOpen}
-										<ChevronDown class="size-4" />
-									{:else}
-										<ChevronRight class="size-4" />
-									{/if}
-									Generated SQL
-								</Collapsible.Trigger>
-								<Button size="sm" onclick={() => executeSql(generatedSql)} disabled={loading}>
-									<Play class="size-3.5" />
-									{loading ? 'Running...' : 'Run'}
-								</Button>
-								<Button size="sm" variant="ghost" onclick={() => { sqlInput = generatedSql; mode = 'sql'; }}>
-									Edit
-								</Button>
-							</div>
-							<Collapsible.Content>
-								<pre class="mt-2 rounded-lg bg-muted p-3 text-xs overflow-x-auto font-mono leading-relaxed">{generatedSql}</pre>
-							</Collapsible.Content>
-						</Collapsible.Root>
 					{/if}
 				</Card.Content>
 			</Card.Root>
