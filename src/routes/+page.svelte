@@ -20,29 +20,27 @@
 </script>
 
 <svelte:head>
-	<title>PATSTAT Explorer</title>
+	<title>EPO Academy Training Material</title>
 </svelte:head>
 
 <div class="space-y-10">
 	<!-- Hero -->
-	<div class="text-center space-y-4 pt-4">
-		<div class="flex items-center justify-center gap-3">
-			<img src="{base}/logo.png" alt="" class="h-12 w-12" />
-			<h1 class="text-4xl font-bold text-[var(--mtc-navy)]">PATSTAT Explorer</h1>
+	<div class="space-y-3 pt-4">
+		<div class="flex items-center justify-between gap-4">
+			<h2 class="text-4xl font-bold text-[var(--epo-dark)]">EPO Academy Training Material</h2>
+			<div class="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+				{#if status}
+					<span class="inline-block h-2 w-2 rounded-full {status.ok ? 'bg-green-500' : 'bg-destructive'}"></span>
+					<span>{status.ok ? 'PATSTAT connected' : 'Connection error'}</span>
+				{:else}
+					<span class="inline-block h-2 w-2 rounded-full bg-muted animate-pulse"></span>
+					<span>Checking connection...</span>
+				{/if}
+			</div>
 		</div>
-		<p class="text-muted-foreground max-w-lg mx-auto leading-relaxed">
-			Search and analyse patent data from the EPO PATSTAT database -
-			applicant trends, co-filing networks, citation flows, and technology classifications.
+		<p class="text-muted-foreground max-w-3xl leading-relaxed">
+			Search and analyse patent data in the EPO Technology Intelligence Platform - applicant name harmonisation, co-filing networks, citation flows and technology classifications in an easy to use Web Application.
 		</p>
-		<div class="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-			{#if status}
-				<span class="inline-block h-2 w-2 rounded-full {status.ok ? 'bg-green-500' : 'bg-destructive'}"></span>
-				<span>{status.ok ? 'PATSTAT connected' : 'Connection error'}</span>
-			{:else}
-				<span class="inline-block h-2 w-2 rounded-full bg-muted animate-pulse"></span>
-				<span>Checking connection...</span>
-			{/if}
-		</div>
 	</div>
 
 	<!-- Main entry points -->
@@ -51,7 +49,7 @@
 			<Card.Root class="h-full transition-colors group-hover:border-[var(--mtc-blue)]/40">
 				<Card.Content class="pt-5 space-y-2">
 					<div class="flex items-center gap-2">
-						<Search class="size-5 text-[var(--mtc-blue)]" />
+						<Search class="size-5 text-[var(--epo-dark)]" />
 						<span class="font-semibold">Applicant Search</span>
 					</div>
 					<p class="text-sm text-muted-foreground leading-relaxed">
@@ -64,7 +62,7 @@
 			<Card.Root class="h-full transition-colors group-hover:border-[var(--mtc-blue)]/40">
 				<Card.Content class="pt-5 space-y-2">
 					<div class="flex items-center gap-2">
-						<Sparkles class="size-5 text-[var(--mtc-blue)]" />
+						<Sparkles class="size-5 text-[var(--epo-dark)]" />
 						<span class="font-semibold">AI Query</span>
 						<Badge variant="secondary" class="text-xs">MCP</Badge>
 					</div>
@@ -78,7 +76,7 @@
 			<Card.Root class="h-full transition-colors group-hover:border-[var(--mtc-blue)]/40">
 				<Card.Content class="pt-5 space-y-2">
 					<div class="flex items-center gap-2">
-						<Cpu class="size-5 text-[var(--mtc-blue)]" />
+						<Cpu class="size-5 text-[var(--epo-dark)]" />
 						<span class="font-semibold">Technology Fields</span>
 					</div>
 					<p class="text-sm text-muted-foreground leading-relaxed">
@@ -91,7 +89,7 @@
 			<Card.Root class="h-full transition-colors group-hover:border-[var(--mtc-blue)]/40">
 				<Card.Content class="pt-5 space-y-2">
 					<div class="flex items-center gap-2">
-						<Globe class="size-5 text-[var(--mtc-blue)]" />
+						<Globe class="size-5 text-[var(--epo-dark)]" />
 						<span class="font-semibold">Country Comparison</span>
 					</div>
 					<p class="text-sm text-muted-foreground leading-relaxed">
@@ -110,19 +108,19 @@
 		<Card.Content>
 			<div class="grid gap-6 sm:grid-cols-4 text-sm">
 				<div class="space-y-1.5">
-					<div class="font-semibold text-[var(--mtc-navy)]">1. Search</div>
+					<div class="font-semibold text-[var(--epo-dark)]">1. Search</div>
 					<p class="text-muted-foreground">Find applicants by name, keywords, or CPC codes.</p>
 				</div>
 				<div class="space-y-1.5">
-					<div class="font-semibold text-[var(--mtc-navy)]">2. Consolidate</div>
+					<div class="font-semibold text-[var(--epo-dark)]">2. Consolidate</div>
 					<p class="text-muted-foreground">Group name variants of the same organisation into one entity.</p>
 				</div>
 				<div class="space-y-1.5">
-					<div class="font-semibold text-[var(--mtc-navy)]">3. Analyse</div>
+					<div class="font-semibold text-[var(--epo-dark)]">3. Analyse</div>
 					<p class="text-muted-foreground">Filing trends, jurisdictions, technology fields - all at a glance.</p>
 				</div>
 				<div class="space-y-1.5">
-					<div class="font-semibold text-[var(--mtc-navy)]">4. Deep Dive</div>
+					<div class="font-semibold text-[var(--epo-dark)]">4. Deep Dive</div>
 					<p class="text-muted-foreground">Co-filing networks, citation flows, patent texts, CPC heatmaps.</p>
 				</div>
 			</div>

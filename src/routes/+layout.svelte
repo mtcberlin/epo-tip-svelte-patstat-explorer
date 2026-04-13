@@ -1,45 +1,18 @@
 <script lang="ts">
 	import '../app.css';
 	import { base } from '$app/paths';
-	import { page } from '$app/state';
 	import ContextBar from '$lib/components/context-bar.svelte';
 
 	let { children } = $props();
-
-	const nav = [
-		{ href: '/search', label: 'Applicants' },
-		{ href: '/technology', label: 'Technology' },
-		{ href: '/countries', label: 'Countries' },
-		{ href: '/query', label: 'AI Query' },
-		{ href: '/about', label: 'About' },
-	];
-
-	function isActive(href: string) {
-		const path = page.url.pathname;
-		return path.startsWith(href);
-	}
 </script>
 
 <div class="min-h-screen bg-background text-foreground">
-	<header class="bg-[var(--mtc-navy)] text-white shadow-md">
+	<header class="bg-[var(--epo-red)] text-white shadow-md">
 		<nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
 			<a href="{base}/" class="flex items-center gap-3 transition-opacity hover:opacity-90">
 				<img src="{base}/logo.svg" alt="" class="h-8 w-8" />
-				<span class="text-lg font-bold tracking-tight">PATSTAT Explorer</span>
+				<h1 class="text-lg font-bold tracking-tight">TIP4PATLIBs PATSTAT Explorer</h1>
 			</a>
-			<ul class="flex gap-1 text-sm font-medium">
-				{#each nav as item}
-					<li>
-						<a
-							href="{base}{item.href}"
-							class="rounded-md px-3 py-2 transition-colors
-								{isActive(item.href) ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}"
-						>
-							{item.label}
-						</a>
-					</li>
-				{/each}
-			</ul>
 		</nav>
 	</header>
 
@@ -55,30 +28,31 @@
 				<!-- Brand — spans 2 cols -->
 				<div class="col-span-2">
 					<div class="flex items-center gap-2.5 mb-3">
-						<img src="{base}/logo.svg" alt="" class="h-5 w-5 opacity-60" />
-						<span class="font-semibold text-sm text-foreground">PATSTAT Explorer</span>
+						<img src="{base}/logo-dark.svg" alt="" class="h-6 w-6" />
+						<span class="font-semibold text-sm text-foreground">TIP4PATLIBs PATSTAT Explorer</span>
 					</div>
 					<p class="text-xs text-muted-foreground leading-relaxed max-w-[260px]">
-						Patent analysis &amp; visualization on EPO PATSTAT Global via BigQuery.
+						Created for the EPO Academy and PATLIB TIP Working Group in March 2026
 					</p>
 				</div>
 
-				<!-- Product -->
+				<!-- EPO Academy -->
 				<div class="text-xs">
-					<h4 class="font-semibold text-foreground mb-3">Product</h4>
+					<h4 class="font-semibold text-foreground mb-3">EPO Academy</h4>
 					<ul class="space-y-2 text-muted-foreground">
-						<li><a href="{base}/about" class="hover:text-foreground transition-colors">About</a></li>
-						<li><a href="https://github.com/mtcberlin/epo-tip-svelte-patstat-explorer" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">GitHub</a></li>
-						<li><a href="https://patentreports.depa.tech" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Patent Reports</a></li>
+						<li><a href="https://e-courses.epo.org/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Online training</a></li>
+						<li><a href="https://www.epo.org/learning/training.html" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Training events</a></li>
+						<li><a href="https://epo.org/academy-training-catalogue" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Training catalogue</a></li>
 					</ul>
 				</div>
 
-				<!-- Company -->
+				<!-- EPO Data -->
 				<div class="text-xs">
-					<h4 class="font-semibold text-foreground mb-3">Company</h4>
+					<h4 class="font-semibold text-foreground mb-3">EPO Data</h4>
 					<ul class="space-y-2 text-muted-foreground">
-						<li><a href="https://mtc.berlin" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">mtc.berlin</a></li>
-						<li><a href="https://depa.tech" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">depa.tech</a></li>
+						<li><a href="https://www.epo.org/en/searching-for-patents/data/technology-intelligence-platform" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Technology Intelligence Platform</a></li>
+						<li><a href="https://tip.epo.org/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Open Tip</a></li>
+						<li><a href="https://e-courses.epo.org/enrol/index.php?id=416" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">An Introduction to TIP</a></li>
 					</ul>
 				</div>
 
@@ -86,16 +60,20 @@
 				<div class="text-xs">
 					<h4 class="font-semibold text-foreground mb-3">Contact</h4>
 					<ul class="space-y-2 text-muted-foreground">
-						<li><a href="https://www.linkedin.com/in/herrkrueger/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">LinkedIn</a></li>
-						<li><a href="https://calendly.com/herrkrueger/patent-intelligence" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Book a call</a></li>
+						<li><a href="https://www.epo.org/en/contact-us?topic=pk&amp;subject_searching_pk=tip" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Contact form</a></li>
+						<li><a href="https://www.linkedin.com/company/european-patent-office/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">LinkedIn</a></li>
 					</ul>
 				</div>
 			</div>
 
 			<!-- Bottom bar -->
 			<div class="mt-8 pt-5 border-t flex items-center justify-between text-xs text-muted-foreground">
-				<span>&copy; {new Date().getFullYear()} <a href="https://mtc.berlin" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">mtc.berlin</a></span>
-				<span>Data: EPO PATSTAT Global</span>
+				<span>&copy; 2026, All rights reserved</span>
+				<span>
+					Author:
+					<a href="https://www.linkedin.com/in/herrkrueger/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Arne Krueger</a>,
+					<a href="https://www.linkedin.com/company/patentinsights/" target="_blank" rel="noopener" class="hover:text-foreground transition-colors">Patent Insights by depa.tech</a>
+				</span>
 			</div>
 		</div>
 	</footer>

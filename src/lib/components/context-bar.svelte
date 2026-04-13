@@ -53,13 +53,13 @@
 </script>
 
 {#if hasContext && ctx}
-	<div class="bg-[var(--mtc-navy)]/[0.04] border-b">
+	<div class="bg-[var(--epo-red)]/[0.12] border-b">
 		<div class="mx-auto max-w-7xl px-6 py-2 flex items-center gap-4 text-sm">
 			<!-- Applicant label + names -->
 			<div class="flex items-center gap-2 shrink-0">
 				<span class="text-xs text-muted-foreground font-medium uppercase tracking-wider">Analysing</span>
 				<button
-					class="flex items-center gap-1 font-semibold text-[var(--mtc-navy)] hover:text-[var(--mtc-blue)] transition-colors"
+					class="flex items-center gap-1 font-semibold text-[var(--epo-red)] hover:text-[var(--epo-red)]/80 transition-colors"
 					onclick={() => { if (isConsolidated) namesExpanded = !namesExpanded; }}
 				>
 					{ctx.label}
@@ -77,7 +77,7 @@
 						href="{base}{link.href}?{ctxParams}"
 						class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap
 							{isLinkActive(link.href)
-								? 'bg-[var(--mtc-blue)] text-white'
+								? 'bg-[var(--epo-red)] text-white'
 								: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
 					>
 						{link.label}

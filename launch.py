@@ -91,9 +91,6 @@ def launch():
     """Full bootstrap: install, build, start sidecar + app."""
     global _processes
 
-    if _processes:
-        stop()
-
     try:
         # 1. Node.js check
         _log("Checking environment...")
@@ -104,7 +101,7 @@ def launch():
         ).stdout.strip()
 
         # 2. Auto-install mtc.berlin PATSTAT MCP
-        _log("Installing mtc.berlin PATSTAT MCP...")
+        _log("Installing EPO TIP PATSTAT helper tools...")
         subprocess.run(
             [sys.executable, "-m", "pip", "install", "--user",
              "git+https://github.com/mtcberlin/mtc-patstat-mcp-lite.git",
@@ -136,57 +133,58 @@ def launch():
             _log("Building app...")
             _run(["npm", "run", "build"])
 
-        # 5. Port check
-        for port in (MCP_PORT, SIDECAR_PORT, APP_PORT):
-            if _port_in_use(port):
-                raise RuntimeError(
-                    f"Port {port} is already in use. "
-                    f"A previous instance may still be running — restart your kernel and try again."
-                )
+        # 5. Start MCP server (or skip if already running)
+        if _port_in_use(MCP_PORT):
+            _log(f"PATSTAT MCP already running on port {MCP_PORT}")
+        else:
+            _log("Starting mtc.berlin PATSTAT MCP...")
+            mcp_proc = subprocess.Popen(
+                [sys.executable, "-m", "patstat_mcp.server", "--http", "--port", str(MCP_PORT)],
+                env=os.environ.copy(),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            _processes.append(mcp_proc)
+            if not _wait_for_port(MCP_PORT, timeout=15):
+                raise RuntimeError("mtc.berlin PATSTAT MCP failed to start.")
 
-        # 6. Start MCP server
-        _log("Starting mtc.berlin PATSTAT MCP...")
-        mcp_proc = subprocess.Popen(
-            [sys.executable, "-m", "patstat_mcp.server", "--http", "--port", str(MCP_PORT)],
-            env=os.environ.copy(),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        _processes.append(mcp_proc)
-        if not _wait_for_port(MCP_PORT, timeout=15):
-            raise RuntimeError("mtc.berlin PATSTAT MCP failed to start.")
+        # 6. Start sidecar (or skip if already running)
+        if _port_in_use(SIDECAR_PORT):
+            _log(f"PATSTAT data service already running on port {SIDECAR_PORT}")
+        else:
+            _log("Starting PATSTAT data service...")
+            sidecar = subprocess.Popen(
+                [sys.executable, os.path.join(PROJECT_DIR, "sidecar.py")],
+                env={
+                    **os.environ,
+                    "PORT": str(SIDECAR_PORT),
+                    "MCP_URL": f"http://127.0.0.1:{MCP_PORT}/mcp",
+                },
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            _processes.append(sidecar)
+            if not _wait_for_port(SIDECAR_PORT, timeout=15):
+                raise RuntimeError("PATSTAT data service failed to start.")
 
-        # 7. Start sidecar
-        _log("Starting PATSTAT data service...")
-        sidecar = subprocess.Popen(
-            [sys.executable, os.path.join(PROJECT_DIR, "sidecar.py")],
-            env={
-                **os.environ,
-                "PORT": str(SIDECAR_PORT),
-                "MCP_URL": f"http://127.0.0.1:{MCP_PORT}/mcp",
-            },
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        _processes.append(sidecar)
-        if not _wait_for_port(SIDECAR_PORT, timeout=15):
-            raise RuntimeError("PATSTAT data service failed to start.")
-
-        # 8. Start app
-        _log("Starting Patent Navigator...")
-        app = subprocess.Popen(
-            ["node", os.path.join(PROJECT_DIR, "build")],
-            env={
-                **os.environ,
-                "PORT": str(APP_PORT),
-                "PATSTAT_API": f"http://127.0.0.1:{SIDECAR_PORT}",
-            },
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        _processes.append(app)
-        if not _wait_for_port(APP_PORT, timeout=10):
-            raise RuntimeError("App server failed to start.")
+        # 7. Start app (or skip if already running)
+        if _port_in_use(APP_PORT):
+            _log(f"PATSTAT Explorer already running on port {APP_PORT}")
+        else:
+            _log("Starting PATSTAT Explorer...")
+            app = subprocess.Popen(
+                ["node", os.path.join(PROJECT_DIR, "build")],
+                env={
+                    **os.environ,
+                    "PORT": str(APP_PORT),
+                    "PATSTAT_API": f"http://127.0.0.1:{SIDECAR_PORT}",
+                },
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            _processes.append(app)
+            if not _wait_for_port(APP_PORT, timeout=10):
+                raise RuntimeError("App server failed to start.")
 
         # 7. Done — show link
         base = os.environ.get("JUPYTERHUB_SERVICE_PREFIX", "/")
@@ -201,11 +199,11 @@ def launch():
                 </div>
                 <a href="{url}" target="_blank"
                    style="display: inline-block; padding: 14px 32px;
-                          background: linear-gradient(135deg, #4a5bc7, #2d3470);
+                          background: #be0f05;
                           color: white; border-radius: 8px; text-decoration: none;
                           font-size: 16px; font-weight: 600;
-                          box-shadow: 0 2px 8px rgba(45,52,112,0.3);">
-                    PATSTAT Explorer &ouml;ffnen &rarr;
+                          box-shadow: 0 2px 8px rgba(190, 15, 5, 0.3);">
+                    PATSTAT Explorer open &rarr;
                 </a>
                 <div style="margin-top: 12px; font-size: 12px; color: #9ca3af;">
                     Node {node_version} &middot; Port {APP_PORT}
