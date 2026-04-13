@@ -104,7 +104,7 @@ def launch():
         ).stdout.strip()
 
         # 2. Auto-install mtc.berlin PATSTAT MCP
-        _log("Installing mtc.berlin PATSTAT MCP...")
+        _log("Installing EPO TIP PATSTAT helper tools...")
         subprocess.run(
             [sys.executable, "-m", "pip", "install", "--user",
              "git+https://github.com/mtcberlin/mtc-patstat-mcp-lite.git",
