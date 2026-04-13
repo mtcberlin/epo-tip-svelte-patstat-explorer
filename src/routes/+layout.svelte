@@ -28,7 +28,7 @@
 				<!-- Brand — spans 2 cols -->
 				<div class="col-span-2">
 					<div class="flex items-center gap-2.5 mb-3">
-						<img src="{base}/logo.svg" alt="" class="h-6 w-6" />
+						<img src="{base}/logo-dark.svg" alt="" class="h-6 w-6" />
 						<span class="font-semibold text-sm text-foreground">TIP4PATLIBs PATSTAT Explorer</span>
 					</div>
 					<p class="text-xs text-muted-foreground leading-relaxed max-w-[260px]">
