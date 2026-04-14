@@ -16,9 +16,17 @@
 	let query = $state('');
 	let topApplicants = $state<{ name: string; country: string; families: number }[]>([]);
 	let trend = $state<{ year: number; families: number }[]>([]);
+	let cpcSuggestions = $state<{ symbol: string; title_en: string }[]>([]);
 	let loading = $state(false);
 	let errorMsg = $state('');
 	let elapsed = $state(0);
+
+	// CPC code shape: A (section), H01 (class), H01M (subclass), H01M10 (group),
+	// H01M10/052 (subgroup). Digits and letters past the section are all optional.
+	const CPC_RE = /^[A-Z]([0-9]{1,2}([A-Z]([0-9]{1,4}(\/[0-9]{1,6})?)?)?)?$/;
+	function isCpcCode(s: string): boolean {
+		return CPC_RE.test(s.trim().toUpperCase());
+	}
 
 	async function runQuery(sql: string): Promise<any[]> {
 		const res = await fetch(`${base}/api/query`, {
@@ -31,6 +39,76 @@
 		return data.rows ?? data;
 	}
 
+	function resetResults() {
+		topApplicants = [];
+		trend = [];
+		cpcSuggestions = [];
+		errorMsg = '';
+	}
+
+	async function handleSubmit() {
+		const raw = query.trim();
+		if (!raw) return;
+		if (isCpcCode(raw)) {
+			query = raw.toUpperCase();
+			await search();
+		} else {
+			await searchDescriptions(raw);
+		}
+	}
+
+	async function searchDescriptions(text: string) {
+		loading = true;
+		resetResults();
+		const t0 = performance.now();
+
+		// Split into words ≥ 3 chars (drops "of", "in", etc. that would dominate hits).
+		// Each word is escaped and matched independently. Results are ranked by how many
+		// of the user's words appear, so multi-word queries don't fail just because the
+		// exact phrase isn't in any CPC title (they almost never are).
+		const words = text
+			.toLowerCase()
+			.split(/\s+/)
+			.map((w) => w.replace(/[^a-z0-9-]/g, ''))
+			.filter((w) => w.length >= 3);
+
+		// Fallback to the raw input if every word got filtered out (e.g. "AI", "5G").
+		const terms = words.length > 0 ? words : [text.trim().toLowerCase()];
+		const escaped = terms.map((w) => w.replace(/'/g, "''"));
+
+		// Search title_full (which carries the full parent chain — e.g. for H01M10/0562 the
+		// title_full reads "Secondary cells > Accumulators with non-aqueous electrolyte >
+		// Li-accumulators > Rocking-chair batteries > Solid materials"). 95% of rows have a
+		// richer title_full than title_en, so this catches concepts inherited from parents.
+		// Display title_en in the UI because it's the clean leaf label.
+		const matchExprs = escaped
+			.map((w) => `(CASE WHEN LOWER(title_full) LIKE '%${w}%' THEN 1 ELSE 0 END)`)
+			.join(' + ');
+		const orExprs = escaped.map((w) => `LOWER(title_full) LIKE '%${w}%'`).join(' OR ');
+
+		try {
+			cpcSuggestions = await runQuery(`
+				SELECT symbol, title_en, (${matchExprs}) AS match_count
+				FROM tls_cpc_hierarchy
+				WHERE (${orExprs})
+				  AND CAST(level AS INTEGER) >= 4
+				ORDER BY match_count DESC, CAST(level AS INTEGER), LENGTH(symbol)
+				LIMIT 30
+			`);
+			elapsed = Math.round(performance.now() - t0);
+		} catch (e) {
+			errorMsg = e instanceof Error ? e.message : String(e);
+		} finally {
+			loading = false;
+		}
+	}
+
+	function pickSuggestion(symbol: string) {
+		query = symbol;
+		cpcSuggestions = [];
+		search();
+	}
+
 	async function search() {
 		const cpc = query.trim().toUpperCase();
 		if (!cpc) return;
@@ -39,6 +117,7 @@
 		errorMsg = '';
 		topApplicants = [];
 		trend = [];
+		cpcSuggestions = [];
 		const t0 = performance.now();
 		const escaped = cpc.replace(/'/g, "''");
 
@@ -103,7 +182,7 @@
 		<Card.Header>
 			<Card.Title class="text-2xl">Technology Search</Card.Title>
 			<Card.Description>
-				Search by CPC classification code. Shows top applicants and filing trends for the technology field.
+				Type a CPC code (<strong>H01M</strong>) or a description (<strong>battery</strong>) — both work.
 				{#if hasApplicantFilter}
 					<div class="mt-2 flex items-center gap-2">
 						<span class="text-xs text-muted-foreground">Filtered to:</span>
@@ -112,23 +191,15 @@
 					</div>
 				{/if}
 			</Card.Description>
-			<details class="mt-2 text-xs text-muted-foreground">
-				<summary class="cursor-pointer hover:text-foreground transition-colors">What are CPC codes?</summary>
-				<p class="mt-1.5 leading-relaxed">
-					The Cooperative Patent Classification (CPC) organizes patents into technology areas.
-					Enter a code prefix like <strong>H01M</strong> (batteries), <strong>A61K</strong> (medical preparations),
-					or <strong>B60W</strong> (autonomous driving). Shorter prefixes (e.g. <strong>H01</strong>) cover broader fields.
-				</p>
-			</details>
 		</Card.Header>
 		<Card.Content>
-			<form onsubmit={(e) => { e.preventDefault(); search(); }} class="flex gap-3">
-				<label class="sr-only" for="cpc-query">CPC code</label>
+			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="flex gap-3">
+				<label class="sr-only" for="cpc-query">CPC code or description</label>
 				<input
 					id="cpc-query"
 					type="text"
 					bind:value={query}
-					placeholder="e.g. H01B (cables, conductors), A61K (medical preparations)..."
+					placeholder="e.g. H01M or battery"
 					class="flex-1 rounded-md border border-input bg-background px-4 py-2 text-sm
 						   focus:border-ring focus:ring-2 focus:ring-ring/20 focus:outline-none"
 				/>
@@ -138,6 +209,37 @@
 			</form>
 		</Card.Content>
 	</Card.Root>
+
+	{#if cpcSuggestions.length > 0}
+		<Card.Root>
+			<Card.Header>
+				<Card.Title class="text-base">Matching CPC codes</Card.Title>
+				<Card.Description>{cpcSuggestions.length} result{cpcSuggestions.length === 1 ? '' : 's'} · click one to see top applicants</Card.Description>
+			</Card.Header>
+			<Card.Content class="p-0">
+				<ul class="divide-y">
+					{#each cpcSuggestions as suggestion}
+						<li>
+							<button
+								type="button"
+								class="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors flex items-baseline gap-3"
+								onclick={() => pickSuggestion(suggestion.symbol)}
+							>
+								<span class="font-mono font-semibold text-[var(--mtc-blue)] shrink-0 min-w-[5rem]">{suggestion.symbol}</span>
+								<span class="text-muted-foreground">{suggestion.title_en}</span>
+							</button>
+						</li>
+					{/each}
+				</ul>
+			</Card.Content>
+		</Card.Root>
+	{:else if !loading && !errorMsg && query && !isCpcCode(query) && topApplicants.length === 0 && trend.length === 0 && elapsed > 0}
+		<Card.Root>
+			<Card.Content class="py-6 text-sm text-muted-foreground text-center">
+				No CPC codes match <span class="font-medium text-foreground">"{query}"</span>. Try simpler or fewer words, or enter a CPC code directly (e.g. <code class="font-mono">H01M</code>).
+			</Card.Content>
+		</Card.Root>
+	{/if}
 
 	{#if errorMsg}
 		<div class="rounded-lg bg-destructive/10 p-4 text-sm text-destructive" role="alert">

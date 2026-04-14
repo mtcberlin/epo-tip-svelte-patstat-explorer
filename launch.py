@@ -17,6 +17,10 @@ MCP_PORT = 8082
 SIDECAR_PORT = 52081
 APP_PORT = 52080
 
+REFERENCE_DB_DIR = os.path.join(PROJECT_DIR, "data")
+REFERENCE_DB_PATH = os.path.join(REFERENCE_DB_DIR, "reference.db")
+REFERENCE_DB_URL = "https://raw.githubusercontent.com/mtcberlin/mtc-patstat-mcp-lite/main/data/reference.db.gz"
+
 try:
     from IPython.display import display, HTML, clear_output
     IN_NOTEBOOK = True
@@ -56,6 +60,29 @@ def _run(cmd, cwd=PROJECT_DIR):
     if result.returncode != 0:
         raise RuntimeError(result.stderr or result.stdout or f"Command failed: {cmd}")
     return result
+
+
+def _ensure_reference_db():
+    """Download and decompress the PATSTAT CPC/IPC reference SQLite database.
+
+    The pip-installed mtc-patstat-mcp-lite package does NOT ship the data/
+    directory, so we fetch reference.db.gz directly from the GitHub repo
+    on first run. Idempotent: skips work if the .db file already exists.
+    """
+    if os.path.exists(REFERENCE_DB_PATH):
+        return
+    os.makedirs(REFERENCE_DB_DIR, exist_ok=True)
+    gz_path = REFERENCE_DB_PATH + ".gz"
+    if not os.path.exists(gz_path):
+        _log("Downloading PATSTAT reference database (~19 MB)...")
+        import urllib.request
+        with urllib.request.urlopen(REFERENCE_DB_URL, timeout=120) as resp:
+            with open(gz_path, "wb") as f:
+                shutil.copyfileobj(resp, f)
+    _log("Decompressing reference database (~145 MB)...")
+    import gzip
+    with gzip.open(gz_path, "rb") as gz_in, open(REFERENCE_DB_PATH, "wb") as f_out:
+        shutil.copyfileobj(gz_in, f_out)
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +141,9 @@ def launch():
         if local_bin not in os.environ.get("PATH", ""):
             os.environ["PATH"] = local_bin + ":" + os.environ["PATH"]
 
+        # 2b. Procure CPC/IPC reference database (not shipped with the pip package)
+        _ensure_reference_db()
+
         # 3. npm install (only if needed)
         marker = os.path.join(PROJECT_DIR, "node_modules", ".package-lock.json")
         if not os.path.exists(marker):
@@ -160,6 +190,7 @@ def launch():
                     **os.environ,
                     "PORT": str(SIDECAR_PORT),
                     "MCP_URL": f"http://127.0.0.1:{MCP_PORT}/mcp",
+                    "REFERENCE_DB_PATH": REFERENCE_DB_PATH,
                 },
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

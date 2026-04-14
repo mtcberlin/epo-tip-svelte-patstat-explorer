@@ -12,6 +12,9 @@ __pycache__
 /.svelte-kit
 /build
 
+# Runtime-downloaded PATSTAT CPC/IPC reference SQLite (procured by launch.py)
+/data/
+
 # OS
 .DS_Store
 Thumbs.db
