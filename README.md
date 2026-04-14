@@ -6,7 +6,7 @@ Interactive patent analysis on PATSTAT, built for the EPO Technology Intelligenc
 
 The only file you need is [`PATSTAT_Explorer.ipynb`](PATSTAT_Explorer.ipynb).
 
-1. Download it from this repo (or *File → Save Link As…* on the [raw link](https://raw.githubusercontent.com/mtcberlin/epo-tip-svelte-patstat-explorer/main/PATSTAT_Explorer.ipynb)).
+1. Download it from this repo (or *File → Save Link As…* on the raw link
 2. Upload it to your home directory on the [EPO Technology Intelligence Platform](https://tip.epo.org/).
 3. Open it, click into the code cell, and run it (play button, Shift+Enter, or Menu → Run → Run selected cell).
 
