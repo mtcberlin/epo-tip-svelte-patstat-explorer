@@ -111,7 +111,7 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<!-- Header with context info + deep-dive links -->
+	<!-- Header with context info -->
 	<Card.Root>
 		<Card.Header>
 			<div class="flex items-start justify-between gap-4">
@@ -131,27 +131,6 @@
 				</Button>
 			</div>
 		</Card.Header>
-		<Card.Content>
-			<div class="flex flex-wrap gap-2">
-				<Button variant="outline" size="sm" href="{base}/network?{ctxParams}">
-					Co-Applicant Network
-				</Button>
-				<Button variant="outline" size="sm" href="{base}/citations?{ctxParams}">
-					Citation Flow
-				</Button>
-				<Button variant="outline" size="sm" href="{base}/text-search?{ctxParams}">
-					Patent Texts
-				</Button>
-				<Button variant="outline" size="sm" href="{base}/co-occurrence?{ctxParams}">
-					CPC Co-Occurrence
-				</Button>
-				{#if !isConsolidated}
-					<Button variant="outline" size="sm" href="{base}/search">
-						Consolidate Names
-					</Button>
-				{/if}
-			</div>
-		</Card.Content>
 	</Card.Root>
 
 	<!-- Analysis tabs -->
