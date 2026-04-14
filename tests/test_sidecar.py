@@ -68,7 +68,7 @@ class TestQuery:
         mock_patstat_client.sql_query.return_value = []
         sql = "SELECT person_name FROM tls206_person LIMIT 5"
         app_client.post("/api/query", json={"sql": sql})
-        mock_patstat_client.sql_query.assert_called_once_with(sql, use_legacy_sql=False)
+        mock_patstat_client.sql_query.assert_called_once_with(sql, use_legacy_sql=True)
 
     def test_query_bigquery_error(self, app_client, mock_patstat_client):
         mock_patstat_client.sql_query.side_effect = Exception("Syntax error at position 10")
