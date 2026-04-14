@@ -3,6 +3,8 @@
 import asyncio
 import json
 import os
+import re
+import sqlite3
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -22,6 +24,40 @@ CONFIG_DIR = Path.home() / ".patent-navigator"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 MCP_URL = os.environ.get("MCP_URL", "http://127.0.0.1:8082/mcp")
+
+# CPC/IPC reference SQLite — populated by launch.py via _ensure_reference_db().
+# Routing logic copied from patstat_mcp/tip_client.py to avoid importing the
+# whole module (which would init a second BigQuery client and rely on broken
+# REPO_ROOT autodiscovery).
+_DEFAULT_REF_DB = Path(__file__).resolve().parent / "data" / "reference.db"
+REFERENCE_DB_PATH = Path(os.environ.get("REFERENCE_DB_PATH", str(_DEFAULT_REF_DB)))
+REFERENCE_TABLES = frozenset({
+    "tls_cpc_hierarchy",
+    "tls_ipc_catchword",
+    "tls_ipc_concordance",
+    "tls_ipc_everused",
+    "tls_ipc_hierarchy",
+})
+_ref_conn: sqlite3.Connection | None = None
+
+
+def _tables_in_query(sql: str) -> set[str]:
+    """Best-effort extraction of table names referenced after FROM/JOIN."""
+    pattern = r'(?:FROM|JOIN)\s+(?:`?[\w.-]+`?\.)?`?(\w+)`?'
+    return {m.lower() for m in re.findall(pattern, sql, re.IGNORECASE)}
+
+
+def _get_ref_conn() -> sqlite3.Connection:
+    global _ref_conn
+    if _ref_conn is None:
+        if not REFERENCE_DB_PATH.exists():
+            raise FileNotFoundError(
+                f"Reference database not found at {REFERENCE_DB_PATH}. "
+                "Re-run launch.py to download it."
+            )
+        _ref_conn = sqlite3.connect(str(REFERENCE_DB_PATH), check_same_thread=False)
+        _ref_conn.row_factory = sqlite3.Row
+    return _ref_conn
 
 MAX_AGENT_ITERATIONS = 15
 
@@ -427,9 +463,27 @@ async def health():
 
 @app.post("/api/query")
 async def query(req: QueryRequest):
+    tables_used = _tables_in_query(req.sql)
+    ref_used = tables_used & REFERENCE_TABLES
+    tip_used = tables_used - REFERENCE_TABLES
+
+    if ref_used and tip_used:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Query mixes BigQuery and local reference tables; not supported. "
+                f"Reference: {sorted(ref_used)}, BigQuery: {sorted(tip_used)}."
+            ),
+        )
+
     try:
+        if ref_used:
+            cursor = _get_ref_conn().execute(req.sql)
+            return [dict(row) for row in cursor.fetchall()]
         result = client.sql_query(req.sql, use_legacy_sql=False)
         return list(result)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
