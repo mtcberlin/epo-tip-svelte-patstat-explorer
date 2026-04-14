@@ -168,16 +168,19 @@ def launch():
         if _port_in_use(MCP_PORT):
             _log(f"PATSTAT MCP already running on port {MCP_PORT}")
         else:
-            _log("Starting mtc.berlin PATSTAT MCP...")
+            _log("Starting the PATSTAT MCP server...")
             mcp_proc = subprocess.Popen(
                 [sys.executable, "-m", "patstat_mcp.server", "--http", "--port", str(MCP_PORT)],
-                env=os.environ.copy(),
+                env={
+                    **os.environ,
+                    "PATSTAT_REFERENCE_DB": REFERENCE_DB_PATH,
+                },
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
             _processes.append(mcp_proc)
             if not _wait_for_port(MCP_PORT, timeout=15):
-                raise RuntimeError("mtc.berlin PATSTAT MCP failed to start.")
+                raise RuntimeError("The PATSTAT MCP server failed to start.")
 
         # 6. Start sidecar (or skip if already running)
         if _port_in_use(SIDECAR_PORT):
