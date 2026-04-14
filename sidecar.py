@@ -62,7 +62,7 @@ def _get_ref_conn() -> sqlite3.Connection:
 MAX_AGENT_ITERATIONS = 15
 
 SYSTEM_PROMPT = """You are a PATSTAT SQL expert. The user asks questions about patent data.
-You generate Google BigQuery legacy SQL.
+You generate Google BigQuery standard SQL (NOT legacy SQL).
 
 IMPORTANT — you have MCP tools for schema discovery. Use them, do NOT guess table/column names.
 
@@ -147,7 +147,7 @@ async def _run_agentic_loop(
         yield {
             "event": "mcp_connected",
             "data": {
-                "server": "PATSTAT MCP Server Lite",
+                "server": "mtc.berlin PATSTAT MCP Server",
                 "tools": [t["name"] for t in mcp_tools],
                 "tool_count": len(mcp_tools),
             },
@@ -480,7 +480,7 @@ async def query(req: QueryRequest):
         if ref_used:
             cursor = _get_ref_conn().execute(req.sql)
             return [dict(row) for row in cursor.fetchall()]
-        result = client.sql_query(req.sql, use_legacy_sql=True)
+        result = client.sql_query(req.sql, use_legacy_sql=False)
         return list(result)
     except HTTPException:
         raise
