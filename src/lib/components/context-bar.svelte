@@ -29,6 +29,10 @@
 	const ctxParams = $derived(ctx ? contextToParams(ctx) : '');
 	const isConsolidated = $derived(ctx ? ctx.names.length > 1 : false);
 
+	// Pages where the applicant submenu makes no sense — they don't use applicant context.
+	const STANDALONE_ROUTES = ['/countries', '/query'];
+	const isStandalone = $derived(STANDALONE_ROUTES.includes(page.route.id ?? ''));
+
 	let namesExpanded = $state(false);
 
 	function clear() {
@@ -43,16 +47,14 @@
 		{ href: '/network', label: 'Network' },
 		{ href: '/citations', label: 'Citations' },
 		{ href: '/co-occurrence', label: 'CPC Map' },
-		{ href: '/text-search', label: 'Texts' },
-		{ href: '/technology', label: 'Technology' },
 	] as const;
 
 	function isLinkActive(href: string) {
-		return page.url.pathname.startsWith(href);
+		return page.route.id === href;
 	}
 </script>
 
-{#if hasContext && ctx}
+{#if hasContext && ctx && !isStandalone}
 	<div class="bg-[var(--epo-red)]/[0.12] border-b">
 		<div class="mx-auto max-w-7xl px-6 py-2 flex items-center gap-4 text-sm">
 			<!-- Applicant label + names -->
