@@ -263,24 +263,50 @@ async def _run_agentic_loop(
 import re
 
 def _extract_sql(text: str) -> str:
-    """Extract SQL from text that may contain markdown fences or explanation."""
+    """Extract SQL from text that may contain markdown fences or surrounding prose.
+
+    The svelte `/api/query` endpoint requires the payload to begin with `SELECT`
+    or `WITH` (after trimming), so this function must always return either a
+    bare SQL statement or an empty string — never prose.
+    """
     text = text.strip()
-    # Try to extract from markdown code fences
-    fence_match = re.search(r'```(?:sql)?\s*\n?(.*?)```', text, re.DOTALL)
+
+    # 1. Prefer a fenced ```sql ... ``` block (the prompt asks for this).
+    fence_match = re.search(r'```(?:sql)?\s*\n?(.*?)```', text, re.DOTALL | re.IGNORECASE)
     if fence_match:
-        return fence_match.group(1).strip()
-    # If the text starts with SELECT, it's likely pure SQL
-    if re.match(r'^\s*SELECT\b', text, re.IGNORECASE):
-        # Take everything up to the first non-SQL line
-        lines = text.split('\n')
-        sql_lines = []
+        candidate = fence_match.group(1).strip().rstrip(';').strip()
+        if re.match(r'^\s*(SELECT|WITH)\b', candidate, re.IGNORECASE):
+            return candidate
+
+    # 2. Locate the first SELECT/WITH keyword anywhere in the text and take
+    #    everything from there. This unblocks the common case where the model
+    #    prepends a satisfaction line ("Perfect! The query works...") before
+    #    the SQL despite being told not to.
+    kw_match = re.search(r'\b(SELECT|WITH)\b', text, re.IGNORECASE)
+    if kw_match:
+        tail = text[kw_match.start():]
+        # If the SQL was inside an unmatched fence, cut at the closing ```.
+        tail = re.split(r'\n\s*```', tail, maxsplit=1)[0]
+        # Stop at the first line that is unambiguously natural-language prose.
+        lines = tail.split('\n')
+        sql_lines: list[str] = []
+        prose_re = re.compile(
+            r'^(This query|This will|Note:|Notes:|Explanation|Here\'s|Here is|'
+            r'I\'ve|I have|You can|Would you|Let me know|Hope this)',
+            re.IGNORECASE,
+        )
         for line in lines:
-            # Stop at lines that look like natural language explanation
-            if sql_lines and re.match(r'^(This|Note|The|I |You |Would|Here)', line.strip()):
+            stripped = line.strip()
+            if sql_lines and prose_re.match(stripped):
                 break
             sql_lines.append(line)
-        return '\n'.join(sql_lines).strip().rstrip(';')
-    return text
+        candidate = '\n'.join(sql_lines).strip().rstrip(';').strip()
+        if re.match(r'^\s*(SELECT|WITH)\b', candidate, re.IGNORECASE):
+            return candidate
+
+    # 3. No recoverable SQL — return empty so the caller surfaces an error
+    #    instead of forwarding prose to the validator.
+    return ""
 
 
 def _extract_last_sql_from_messages(messages: list[dict]) -> str | None:
