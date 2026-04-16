@@ -20,14 +20,14 @@
 </script>
 
 <svelte:head>
-	<title>EPO Academy Training Material</title>
+	<title>TIP4PATLIBs PATSTAT Explorer</title>
 </svelte:head>
 
 <div class="space-y-10">
 	<!-- Hero -->
 	<div class="space-y-3 pt-4">
 		<div class="flex items-center justify-between gap-4">
-			<h2 class="text-4xl font-bold text-[var(--epo-dark)]">EPO Academy Training Material</h2>
+			<h2 class="text-4xl font-bold text-[var(--epo-dark)]">TIP4PATLIBs PATSTAT Explorer</h2>
 			<div class="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
 				{#if status}
 					<span class="inline-block h-2 w-2 rounded-full {status.ok ? 'bg-green-500' : 'bg-destructive'}"></span>
