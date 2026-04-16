@@ -11,7 +11,7 @@
 		<nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
 			<a href="{base}/" class="flex items-center gap-3 transition-opacity hover:opacity-90">
 				<img src="{base}/logo.svg" alt="" class="h-8 w-8" />
-				<h1 class="text-lg font-bold tracking-tight">TIP4PATLIBs PATSTAT Explorer</h1>
+				<h1 class="text-lg font-bold tracking-tight">EPO Academy Training Material</h1>
 			</a>
 		</nav>
 	</header>
