@@ -57,6 +57,39 @@ This will return the top 5 persons."""
         result = _extract_sql(text)
         assert result == "SELECT person_name FROM tls206_person LIMIT 5"
 
+    def test_prose_preamble_before_select(self):
+        # Regression: model sometimes prepends a satisfaction line after running
+        # execute_query, e.g. "Perfect! The query works..." followed by the SQL.
+        # _extract_sql must strip the preamble so the svelte /api/query
+        # validator (which requires SELECT/WITH at position 0) accepts it.
+        from sidecar import _extract_sql
+        text = (
+            "Perfect! The query works. Let me verify the results are correct "
+            "by checking what we're counting and ensure we have the right date "
+            "range (last 5 years means 2020-2024):\n\n"
+            "SELECT\n"
+            "    SUBSTR(cpc.cpc_class_symbol, 1, 5) AS cpc_subclass,\n"
+            "    COUNT(DISTINCT appln.docdb_family_id) AS family_count\n"
+            "FROM tls201_appln appln\n"
+            "WHERE appln.appln_filing_year >= 2020\n"
+            "GROUP BY cpc_subclass\n"
+            "LIMIT 500"
+        )
+        result = _extract_sql(text)
+        assert result.startswith("SELECT"), f"Result must start with SELECT, got: {result[:60]!r}"
+        assert "Perfect" not in result
+        assert "LIMIT 500" in result
+
+    def test_with_cte_is_recognised(self):
+        from sidecar import _extract_sql
+        text = "WITH families AS (SELECT docdb_family_id FROM tls201_appln LIMIT 10) SELECT * FROM families"
+        result = _extract_sql(text)
+        assert result.startswith("WITH")
+
+    def test_returns_empty_when_no_sql(self):
+        from sidecar import _extract_sql
+        assert _extract_sql("Sorry, I cannot answer that.") == ""
+
 
 class TestExtractLastSqlFromMessages:
     def test_finds_last_execute_query(self):

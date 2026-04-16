@@ -3,6 +3,8 @@
 import asyncio
 import json
 import os
+import re
+import sqlite3
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -22,6 +24,40 @@ CONFIG_DIR = Path.home() / ".patent-navigator"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 MCP_URL = os.environ.get("MCP_URL", "http://127.0.0.1:8082/mcp")
+
+# CPC/IPC reference SQLite — populated by launch.py via _ensure_reference_db().
+# Routing logic copied from patstat_mcp/tip_client.py to avoid importing the
+# whole module (which would init a second BigQuery client and rely on broken
+# REPO_ROOT autodiscovery).
+_DEFAULT_REF_DB = Path(__file__).resolve().parent / "data" / "reference.db"
+REFERENCE_DB_PATH = Path(os.environ.get("REFERENCE_DB_PATH", str(_DEFAULT_REF_DB)))
+REFERENCE_TABLES = frozenset({
+    "tls_cpc_hierarchy",
+    "tls_ipc_catchword",
+    "tls_ipc_concordance",
+    "tls_ipc_everused",
+    "tls_ipc_hierarchy",
+})
+_ref_conn: sqlite3.Connection | None = None
+
+
+def _tables_in_query(sql: str) -> set[str]:
+    """Best-effort extraction of table names referenced after FROM/JOIN."""
+    pattern = r'(?:FROM|JOIN)\s+(?:`?[\w.-]+`?\.)?`?(\w+)`?'
+    return {m.lower() for m in re.findall(pattern, sql, re.IGNORECASE)}
+
+
+def _get_ref_conn() -> sqlite3.Connection:
+    global _ref_conn
+    if _ref_conn is None:
+        if not REFERENCE_DB_PATH.exists():
+            raise FileNotFoundError(
+                f"Reference database not found at {REFERENCE_DB_PATH}. "
+                "Re-run launch.py to download it."
+            )
+        _ref_conn = sqlite3.connect(str(REFERENCE_DB_PATH), check_same_thread=False)
+        _ref_conn.row_factory = sqlite3.Row
+    return _ref_conn
 
 MAX_AGENT_ITERATIONS = 15
 
@@ -192,6 +228,18 @@ async def _run_agentic_loop(
             text_parts = [b.text for b in response.content if b.type == "text"]
             final_text = _extract_sql("\n".join(text_parts))
 
+            # Model sometimes stops without echoing the SQL (it already ran it via execute_query).
+            # Fall back to the last execute_query tool call so the client always has runnable SQL.
+            if not final_text:
+                final_text = _extract_last_sql_from_messages(messages) or ""
+
+            if not final_text:
+                yield {
+                    "event": "error",
+                    "data": {"message": "Agent finished without producing any SQL."},
+                }
+                return
+
             yield {
                 "event": "result",
                 "data": {"text": final_text, "iterations": iteration + 1},
@@ -215,24 +263,50 @@ async def _run_agentic_loop(
 import re
 
 def _extract_sql(text: str) -> str:
-    """Extract SQL from text that may contain markdown fences or explanation."""
+    """Extract SQL from text that may contain markdown fences or surrounding prose.
+
+    The svelte `/api/query` endpoint requires the payload to begin with `SELECT`
+    or `WITH` (after trimming), so this function must always return either a
+    bare SQL statement or an empty string — never prose.
+    """
     text = text.strip()
-    # Try to extract from markdown code fences
-    fence_match = re.search(r'```(?:sql)?\s*\n?(.*?)```', text, re.DOTALL)
+
+    # 1. Prefer a fenced ```sql ... ``` block (the prompt asks for this).
+    fence_match = re.search(r'```(?:sql)?\s*\n?(.*?)```', text, re.DOTALL | re.IGNORECASE)
     if fence_match:
-        return fence_match.group(1).strip()
-    # If the text starts with SELECT, it's likely pure SQL
-    if re.match(r'^\s*SELECT\b', text, re.IGNORECASE):
-        # Take everything up to the first non-SQL line
-        lines = text.split('\n')
-        sql_lines = []
+        candidate = fence_match.group(1).strip().rstrip(';').strip()
+        if re.match(r'^\s*(SELECT|WITH)\b', candidate, re.IGNORECASE):
+            return candidate
+
+    # 2. Locate the first SELECT/WITH keyword anywhere in the text and take
+    #    everything from there. This unblocks the common case where the model
+    #    prepends a satisfaction line ("Perfect! The query works...") before
+    #    the SQL despite being told not to.
+    kw_match = re.search(r'\b(SELECT|WITH)\b', text, re.IGNORECASE)
+    if kw_match:
+        tail = text[kw_match.start():]
+        # If the SQL was inside an unmatched fence, cut at the closing ```.
+        tail = re.split(r'\n\s*```', tail, maxsplit=1)[0]
+        # Stop at the first line that is unambiguously natural-language prose.
+        lines = tail.split('\n')
+        sql_lines: list[str] = []
+        prose_re = re.compile(
+            r'^(This query|This will|Note:|Notes:|Explanation|Here\'s|Here is|'
+            r'I\'ve|I have|You can|Would you|Let me know|Hope this)',
+            re.IGNORECASE,
+        )
         for line in lines:
-            # Stop at lines that look like natural language explanation
-            if sql_lines and re.match(r'^(This|Note|The|I |You |Would|Here)', line.strip()):
+            stripped = line.strip()
+            if sql_lines and prose_re.match(stripped):
                 break
             sql_lines.append(line)
-        return '\n'.join(sql_lines).strip().rstrip(';')
-    return text
+        candidate = '\n'.join(sql_lines).strip().rstrip(';').strip()
+        if re.match(r'^\s*(SELECT|WITH)\b', candidate, re.IGNORECASE):
+            return candidate
+
+    # 3. No recoverable SQL — return empty so the caller surfaces an error
+    #    instead of forwarding prose to the validator.
+    return ""
 
 
 def _extract_last_sql_from_messages(messages: list[dict]) -> str | None:
@@ -415,9 +489,27 @@ async def health():
 
 @app.post("/api/query")
 async def query(req: QueryRequest):
+    tables_used = _tables_in_query(req.sql)
+    ref_used = tables_used & REFERENCE_TABLES
+    tip_used = tables_used - REFERENCE_TABLES
+
+    if ref_used and tip_used:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Query mixes BigQuery and local reference tables; not supported. "
+                f"Reference: {sorted(ref_used)}, BigQuery: {sorted(tip_used)}."
+            ),
+        )
+
     try:
+        if ref_used:
+            cursor = _get_ref_conn().execute(req.sql)
+            return [dict(row) for row in cursor.fetchall()]
         result = client.sql_query(req.sql, use_legacy_sql=False)
         return list(result)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
