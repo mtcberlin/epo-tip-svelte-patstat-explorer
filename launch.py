@@ -5,6 +5,7 @@ Handles everything: npm install, build, sidecar, app server.
 Designed to be called from a Jupyter notebook cell via %run.
 """
 
+import html
 import subprocess
 import os
 import sys
@@ -29,13 +30,14 @@ except ImportError:
 
 
 def _log(msg):
+    safe_msg = html.escape(msg)
     if IN_NOTEBOOK:
         clear_output(wait=True)
         display(HTML(f"""
         <div style="font-family: system-ui, sans-serif; padding: 20px;
                     background: #f8fafc; border-left: 4px solid #0779bf;
                     border-radius: 8px;">
-            <div style="font-size: 15px; color: #334155;">⏳ {msg}</div>
+            <div style="font-size: 15px; color: #334155;">⏳ {safe_msg}</div>
         </div>"""))
     else:
         print(f"  {msg}")
@@ -43,7 +45,25 @@ def _log(msg):
 
 def _port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(1)
         return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+def _kill_port(port):
+    """Best-effort: kill processes listening on a TCP port (orphans from prior runs)."""
+    try:
+        import psutil
+    except ImportError:
+        return
+    for proc in psutil.process_iter(["pid"]):
+        try:
+            conns = (proc.net_connections if hasattr(proc, "net_connections") else proc.connections)(kind="tcp")
+            for conn in conns:
+                if conn.laddr and conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
+                    proc.kill()
+                    break
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
 
 
 def _wait_for_port(port, timeout=15):
@@ -87,21 +107,22 @@ def _ensure_reference_db():
 
 # ---------------------------------------------------------------------------
 
-_processes = []
+_processes: list[subprocess.Popen] = []
 
 
-def stop():
+def stop(silent: bool = False) -> None:
     """Stop all running Patent Navigator processes."""
-    for p in _processes:
-        try:
-            p.terminate()
-            p.wait(timeout=5)
-        except Exception:
+    for proc in _processes:
+        if proc.poll() is None:
+            proc.terminate()
             try:
-                p.kill()
-            except Exception:
-                pass
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
     _processes.clear()
+    if silent:
+        return
     if IN_NOTEBOOK:
         clear_output(wait=True)
         display(HTML("""
@@ -114,9 +135,23 @@ def stop():
         print("Patent Navigator stopped.")
 
 
+def _ensure_port_free(port: int) -> None:
+    """Reclaim a port held by an orphaned process, or fail loudly."""
+    if not _port_in_use(port):
+        return
+    _log(f"Port {port} busy, cleaning up orphaned process...")
+    _kill_port(port)
+    time.sleep(0.5)
+    if _port_in_use(port):
+        raise RuntimeError(f"Port {port} still in use after cleanup attempt.")
+
+
 def launch():
     """Full bootstrap: install, build, start sidecar + app."""
     global _processes
+
+    if _processes:
+        stop(silent=True)
 
     try:
         # 1. Node.js check
@@ -127,10 +162,11 @@ def launch():
             ["node", "--version"], capture_output=True, text=True
         ).stdout.strip()
 
-        # 2. Auto-install mtc.berlin PATSTAT MCP + AI Query deps
+        # 2. Auto-install mtc.berlin PATSTAT MCP + AI Query deps + psutil
         _log("Installing EPO TIP PATSTAT helper tools...")
         subprocess.run(
             [sys.executable, "-m", "pip", "install", "--user",
+             "psutil>=5.9",
              "git+https://github.com/mtcberlin/mtc-patstat-mcp-lite.git",
              "fastapi>=0.135",
              "anthropic>=0.40"],
@@ -164,71 +200,65 @@ def launch():
             _log("Building app...")
             _run(["npm", "run", "build"])
 
-        # 5. Start MCP server (or skip if already running)
-        if _port_in_use(MCP_PORT):
-            _log(f"PATSTAT MCP already running on port {MCP_PORT}")
-        else:
-            _log("Starting the PATSTAT MCP server...")
-            mcp_proc = subprocess.Popen(
-                [sys.executable, "-m", "patstat_mcp.server", "--http", "--port", str(MCP_PORT)],
-                env={
-                    **os.environ,
-                    "PATSTAT_REFERENCE_DB": REFERENCE_DB_PATH,
-                },
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            _processes.append(mcp_proc)
-            if not _wait_for_port(MCP_PORT, timeout=15):
-                raise RuntimeError("The PATSTAT MCP server failed to start.")
+        # 5. Start MCP server
+        _ensure_port_free(MCP_PORT)
+        _log("Starting the PATSTAT MCP server...")
+        mcp_proc = subprocess.Popen(
+            [sys.executable, "-m", "patstat_mcp.server", "--http", "--port", str(MCP_PORT)],
+            env={
+                **os.environ,
+                "PATSTAT_REFERENCE_DB": REFERENCE_DB_PATH,
+            },
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        _processes.append(mcp_proc)
+        if not _wait_for_port(MCP_PORT, timeout=15):
+            raise RuntimeError("The PATSTAT MCP server failed to start.")
 
-        # 6. Start sidecar (or skip if already running)
-        if _port_in_use(SIDECAR_PORT):
-            _log(f"PATSTAT data service already running on port {SIDECAR_PORT}")
-        else:
-            _log("Starting PATSTAT data service...")
-            sidecar = subprocess.Popen(
-                [sys.executable, os.path.join(PROJECT_DIR, "sidecar.py")],
-                env={
-                    **os.environ,
-                    "PORT": str(SIDECAR_PORT),
-                    "MCP_URL": f"http://127.0.0.1:{MCP_PORT}/mcp",
-                    "REFERENCE_DB_PATH": REFERENCE_DB_PATH,
-                },
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            _processes.append(sidecar)
-            if not _wait_for_port(SIDECAR_PORT, timeout=15):
-                raise RuntimeError("PATSTAT data service failed to start.")
+        # 6. Start sidecar
+        _ensure_port_free(SIDECAR_PORT)
+        _log("Starting PATSTAT data service...")
+        sidecar = subprocess.Popen(
+            [sys.executable, os.path.join(PROJECT_DIR, "sidecar.py")],
+            env={
+                **os.environ,
+                "PORT": str(SIDECAR_PORT),
+                "MCP_URL": f"http://127.0.0.1:{MCP_PORT}/mcp",
+                "REFERENCE_DB_PATH": REFERENCE_DB_PATH,
+            },
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        _processes.append(sidecar)
+        if not _wait_for_port(SIDECAR_PORT, timeout=15):
+            raise RuntimeError("PATSTAT data service failed to start.")
 
-        # 7. Start app (or skip if already running)
-        if _port_in_use(APP_PORT):
-            _log(f"PATSTAT Explorer already running on port {APP_PORT}")
-        else:
-            _log("Starting PATSTAT Explorer...")
-            app = subprocess.Popen(
-                ["node", os.path.join(PROJECT_DIR, "build")],
-                env={
-                    **os.environ,
-                    "PORT": str(APP_PORT),
-                    "PATSTAT_API": f"http://127.0.0.1:{SIDECAR_PORT}",
-                },
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            _processes.append(app)
-            if not _wait_for_port(APP_PORT, timeout=10):
-                raise RuntimeError("App server failed to start.")
+        # 7. Start app
+        _ensure_port_free(APP_PORT)
+        _log("Starting PATSTAT Explorer...")
+        app = subprocess.Popen(
+            ["node", os.path.join(PROJECT_DIR, "build")],
+            env={
+                **os.environ,
+                "PORT": str(APP_PORT),
+                "PATSTAT_API": f"http://127.0.0.1:{SIDECAR_PORT}",
+            },
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        _processes.append(app)
+        if not _wait_for_port(APP_PORT, timeout=10):
+            raise RuntimeError("App server failed to start.")
 
-        # 7. Done — show link
+        # 8. Done — show link + Stop button
         base = os.environ.get("JUPYTERHUB_SERVICE_PREFIX", "/")
         url = f"{base}proxy/{APP_PORT}/"
 
         if IN_NOTEBOOK:
             clear_output(wait=True)
-            display(HTML(f"""
-            <div style="font-family: system-ui, sans-serif; text-align: center; padding: 32px;">
+            running_html = HTML(f"""
+            <div style="font-family: system-ui, sans-serif; text-align: center; padding: 32px 32px 8px;">
                 <div style="font-size: 15px; color: #059669; font-weight: 600; margin-bottom: 16px;">
                     ✅ PATSTAT Explorer is running
                 </div>
@@ -243,13 +273,44 @@ def launch():
                 <div style="margin-top: 12px; font-size: 12px; color: #9ca3af;">
                     Node {node_version} &middot; Port {APP_PORT}
                 </div>
-            </div>"""))
+            </div>""")
+            try:
+                import ipywidgets as widgets
+                ui_out = widgets.Output()
+                with ui_out:
+                    display(running_html)
+                    stop_btn = widgets.Button(
+                        description="⏹  Stop PATSTAT Explorer",
+                        button_style="danger",
+                        layout=widgets.Layout(width="auto", margin="0 auto 24px"),
+                    )
+
+                    def _on_stop(_btn):
+                        stop(silent=True)
+                        ui_out.clear_output(wait=False)
+                        with ui_out:
+                            display(HTML(
+                                "<div style='font-family:system-ui,sans-serif;"
+                                "padding:20px;background:#fef2f2;"
+                                "border-left:4px solid #dc2626;border-radius:8px;'>"
+                                "<div style='font-size:15px;color:#991b1b;'>"
+                                "Patent Navigator gestoppt.</div></div>"
+                            ))
+
+                    stop_btn.on_click(_on_stop)
+                    display(widgets.HBox(
+                        [stop_btn],
+                        layout=widgets.Layout(justify_content="center"),
+                    ))
+                display(ui_out)
+            except ImportError:
+                display(running_html)
         else:
             print(f"\nPatent Navigator is running!\nOpen: {url}")
 
     except Exception as e:
         if _processes:
-            stop()
+            stop(silent=True)
         if IN_NOTEBOOK:
             clear_output(wait=True)
             display(HTML(f"""
@@ -257,7 +318,7 @@ def launch():
                         background: #fef2f2; border-left: 4px solid #dc2626;
                         border-radius: 8px;">
                 <div style="font-size: 15px; font-weight: 600; color: #991b1b;">Start fehlgeschlagen</div>
-                <div style="font-size: 13px; color: #7f1d1d; margin-top: 4px;">{e}</div>
+                <div style="font-size: 13px; color: #7f1d1d; margin-top: 4px;">{html.escape(str(e))}</div>
             </div>"""))
         else:
             print(f"ERROR: {e}")
