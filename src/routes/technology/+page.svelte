@@ -14,6 +14,7 @@
 	const hasApplicantFilter = $derived(ctx.names.length > 0);
 
 	let query = $state('');
+	let countryFilter = $state('');
 	let topApplicants = $state<{ name: string; country: string; families: number }[]>([]);
 	let trend = $state<{ year: number; families: number }[]>([]);
 	let cpcSuggestions = $state<{ symbol: string; title_en: string }[]>([]);
@@ -130,6 +131,19 @@
 			? `AND ${nameWhereClause(ctx, 'p_ctx')}`
 			: '';
 
+		const countryCodes = countryFilter
+			.toUpperCase()
+			.split(/[,;\s]+/)
+			.map((s) => s.trim())
+			.filter((s) => /^[A-Z]{2,3}$/.test(s));
+		const countryWhere = countryCodes.length
+			? `AND p.person_ctry_code IN (${countryCodes.map((c) => `'${c}'`).join(',')})`
+			: '';
+		const trendCountryJoin = countryCodes.length
+			? `JOIN tls207_pers_appln pa_c ON a.appln_id = pa_c.appln_id AND pa_c.applt_seq_nr > 0
+			   JOIN tls206_person p ON pa_c.person_id = p.person_id`
+			: '';
+
 		try {
 			const [applicantData, trendData] = await Promise.all([
 				runQuery(`
@@ -144,6 +158,7 @@
 					WHERE c.cpc_class_symbol LIKE '${escaped}%'
 					  AND pa.applt_seq_nr > 0
 					  ${applicantWhere}
+					  ${countryWhere}
 					GROUP BY p.person_name, p.person_ctry_code
 					ORDER BY families DESC
 					LIMIT 20
@@ -154,9 +169,11 @@
 					FROM tls224_appln_cpc c
 					JOIN tls201_appln a ON c.appln_id = a.appln_id
 					${applicantJoin}
+					${trendCountryJoin}
 					WHERE c.cpc_class_symbol LIKE '${escaped}%'
 					  AND a.appln_filing_year BETWEEN 1990 AND 2024
 					  ${applicantWhere}
+					  ${countryWhere}
 					GROUP BY a.appln_filing_year
 					ORDER BY year
 				`)
@@ -190,10 +207,19 @@
 						<a href="{base}/technology" class="text-xs underline">(clear)</a>
 					</div>
 				{/if}
+				{#if countryFilter.trim()}
+					<div class="mt-2 flex items-center gap-2 flex-wrap">
+						<span class="text-xs text-muted-foreground">Countries:</span>
+						{#each countryFilter.toUpperCase().split(/[,;\s]+/).filter(Boolean) as code}
+							<Badge variant="outline">{code}</Badge>
+						{/each}
+						<button type="button" class="text-xs underline" onclick={() => { countryFilter = ''; search(); }}>(clear)</button>
+					</div>
+				{/if}
 			</Card.Description>
 		</Card.Header>
 		<Card.Content>
-			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="flex gap-3">
+			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="flex flex-col gap-3 sm:flex-row">
 				<label class="sr-only" for="cpc-query">CPC code or description</label>
 				<input
 					id="cpc-query"
@@ -201,6 +227,15 @@
 					bind:value={query}
 					placeholder="e.g. H01M or battery"
 					class="flex-1 rounded-md border border-input bg-background px-4 py-2 text-sm
+						   focus:border-ring focus:ring-2 focus:ring-ring/20 focus:outline-none"
+				/>
+				<label class="sr-only" for="country-filter">Country filter</label>
+				<input
+					id="country-filter"
+					type="text"
+					bind:value={countryFilter}
+					placeholder="Country (optional, e.g. DE, EP)"
+					class="w-full sm:w-56 rounded-md border border-input bg-background px-4 py-2 text-sm
 						   focus:border-ring focus:ring-2 focus:ring-ring/20 focus:outline-none"
 				/>
 				<Button type="submit" disabled={loading || !query.trim()}>
