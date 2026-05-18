@@ -67,11 +67,11 @@ Deshalb steht in *jeder* Query der Pipeline `COUNT(DISTINCT a.docdb_family_id)`.
 ## 3. Der Workflow in drei Stufen
 
 ```
- Stufe 1            Stufe 1.5             Stufe 2 (optional)     Stufe 3
- ────────           ─────────             ──────────────────     ───────
- Varianten          Gruppieren            Trend-Vorschau         Konsolidierte
- finden        ──►  (Auto/Manuell)   ──►  (Sanity-Check)    ──►  Tiefenanalyse
- (LIKE-Prefix)      (Mensch entscheidet)  (1 Chart)              (Trend/Jurisd./CPC)
+ Stufe 1            Stufe 1.5                  Stufe 2 (optional)    Stufe 3
+ ────────           ─────────                  ──────────────────    ───────
+ Varianten          Gruppieren + PRÜFEN        Trend-Vorschau        Konsolidierte
+ finden        ──►  (Vorschlag, dann      ──►  (Sanity-Check)   ──►  Tiefenanalyse
+ (LIKE-Prefix)       Mensch bereinigt)         (1 Chart)             (Trend/Jurisd./CPC)
 ```
 
 Alle Abfragen laufen über denselben Pfad:
@@ -117,10 +117,13 @@ Ergebnis: die linke Trefferliste in der UI, jede Zeile mit Land und Familienzahl
 
 ---
 
-### Stufe 1.5 — Gruppieren (die eigentliche Konsolidierungs­entscheidung)
+### Stufe 1.5 — Gruppieren & Prüfen (die eigentliche Konsolidierungs­entscheidung)
 
 Hier gibt es **keine SQL** — das ist die menschliche bzw. heuristische Entscheidung,
-welche Varianten dieselbe Organisation sind. Drei Wege:
+welche Varianten dieselbe Organisation sind. Die Stufe ist **zweistufig**: erst ein
+Vorschlag, dann eine verbindliche Prüfung. Erst der zweite Teil schließt sie ab.
+
+Für den Vorschlag gibt es drei Wege:
 
 1. **Manuell** — Checkboxen an/aus, „All" / „None".
 2. **Auto-suggest** — eine Heuristik gruppiert Varianten mit gleichem „Kernnamen".
@@ -140,12 +143,29 @@ Entfernt werden u.a. (Liste `LEGAL_SUFFIXES`):
 > MBH, KABUSHIKI, KAISHA, KK, COMPANY, INDUSTRIES, INDUSTRIAL, ELECTRONICS, ELECTRIC,
 > INTERNATIONAL, HOLDINGS, GROUP, GLOBAL, OF, THE, AND, DE, DER, DES, ET, UND
 
-**Wichtige Konsequenz / Fallstrick:** Es wird nur das **erste** Kernwort betrachtet.
-`Siemens Healthineers AG` → Kern `SIEMENS`. Das heißt: Auto-suggest für „Siemens
-Healthineers" gruppiert potenziell *alle* mit `SIEMENS` beginnenden Anmelder mit —
-auch „Siemens AG" oder „Siemens Mobility". Auto-suggest ist also bewusst **breit** und
-muss vom Menschen nachkontrolliert werden (Checkboxen abwählen). Für saubere
-Konsolidierung ist die manuelle Kontrolle der Goldstandard.
+**Eigenschaft des Verfahrens (kein Fehler):** Es wird nur das **erste** Kernwort
+betrachtet — `Siemens Healthineers AG` → Kern `SIEMENS`. Auto-suggest gruppiert
+deshalb absichtlich *breit*: auch „Siemens AG" oder „Siemens Mobility" werden
+vorgeschlagen. Das ist gewollt — lieber zu breit vorschlagen als Varianten übersehen.
+Genau deshalb ist die Gruppierung zweistufig und der folgende Prüfschritt verbindlich.
+
+#### Pflichtschritt: Auswahl prüfen & bereinigen
+
+Auto-suggest liefert nur einen Vorschlag. Bevor du „Preview Trend" oder „Analyse
+Consolidated" klickst, gehst du den Vorschlag durch — das ist Teil des Verfahrens,
+kein optionaler Feinschliff:
+
+1. **Sektor prüfen:** Varianten, die erkennbar zu einer anderen Sparte gehören
+   (z.B. „Siemens Energy", „Siemens Mobility" bei der Suche nach „Siemens
+   Healthineers"), per Checkbox abwählen.
+2. **Länder/Familienzahl sichten:** Auffällige Einzeltreffer in unerwarteten
+   Ländern bewusst einordnen (echte Auslandstochter vs. Fremdfirma).
+3. **Anzeigename festlegen:** spezifischste passende Variante bzw. Custom name.
+4. **Sanity-Check:** „Preview Trend" — die konsolidierte Familienzahl muss
+   **≤ Summe** der Einzel-Familienzahlen sein (Faustregel siehe Abschnitt 5).
+
+Erst die so bereinigte Auswahl geht in die Tiefenanalyse. Die manuelle Kontrolle
+ist der Goldstandard; Auto-suggest ist der Startpunkt, nicht das Ergebnis.
 
 ---
 

@@ -101,11 +101,19 @@ Gruppierung.
 
 ---
 
-## 4. Stufe 1.5 — Gruppierungs-Heuristik (`coreNameOf` + Auto-Suggest)
+## 4. Stufe 1.5 — Gruppierung: Vorschlag + Pflichtprüfung
 
-Diese Stufe ist clientseitig/algorithmisch — **keine SQL**. Sie liefert dem Agenten
-einen Vorschlag, welche Varianten zusammengehören. Der Agent sollte den Vorschlag
-*prüfen* (Länder, Familienzahlen, offensichtliche Fremdfirmen), nicht blind übernehmen.
+Diese Stufe ist clientseitig/algorithmisch — **keine SQL**. Sie besteht aus zwei
+untrennbaren Teilschritten und wird erst mit dem zweiten abgeschlossen:
+
+- **§4.1–4.3 Vorschlag** — die `coreNameOf`/Auto-Suggest-Heuristik schlägt eine
+  Gruppierung vor.
+- **§4.4 Prüfung & Bereinigung (Pflicht)** — der Agent verifiziert und bereinigt
+  den Vorschlag, bevor er weiterverwendet wird.
+
+Die Heuristik liefert nur einen Kandidatenvorschlag; sie ist bewusst breit (§4.2)
+und darf **nie** ungeprüft in den Namensfilter (§5) übernommen werden. Schritt §4.4
+ist fester Bestandteil des Verfahrens, kein optionaler Nachgedanke.
 
 ### 4.1 Konstante: `LEGAL_SUFFIXES` (vollständig, Großbuchstaben)
 
@@ -132,11 +140,13 @@ function coreNameOf(name):
     return core.join(' ')
 ```
 
-> **Kritischer Punkt:** Es wird **nur das erste** inhaltstragende Wort behalten
-> (`break` bei `core.length == 1`). `coreNameOf("Siemens Healthineers AG") == "SIEMENS"`.
-> Auto-Suggest ist dadurch absichtlich **breit** und over-matcht (gruppiert „Siemens
-> AG", „Siemens Mobility" mit). Der Skill muss nach dem Vorschlag eine
-> Plausibilitätsprüfung machen (siehe §7), sonst entsteht Über-Konsolidierung.
+**Eigenschaft des Verfahrens (kein Bug):** Es wird **nur das erste** inhaltstragende
+Wort behalten (`break` bei `core.length == 1`), also
+`coreNameOf("Siemens Healthineers AG") == "SIEMENS"`. Auto-Suggest gruppiert dadurch
+absichtlich **breit** — auch „Siemens AG" oder „Siemens Mobility" landen im Vorschlag.
+Das ist gewollt: lieber zu breit vorschlagen und in §4.4 gezielt bereinigen als
+Varianten verlieren. Genau deshalb ist die Prüfung in §4.4 ein **Pflichtschritt** des
+Verfahrens — die Heuristik allein ist nie das Ergebnis.
 
 ### 4.3 Auto-Suggest-Auswahl
 
@@ -149,6 +159,36 @@ parent     = anchorName                          # Anzeigename
 `parent` (Anzeigename) ist standardmäßig die Variante mit den **meisten Familien**
 (`ORDER BY families DESC` → erstes Element der ausgewählten Menge), kann aber ein
 frei gesetzter Label-String sein.
+
+### 4.4 Stufe 1.6 — Konsolidierung prüfen & bereinigen (Pflichtschritt)
+
+Dies ist ein verbindlicher Verfahrensschritt, kein optionaler Review. Er steht
+zwischen Heuristik (§4.3) und Filterbau (§5) und ist die Bedingung dafür, dass
+überhaupt eine Stufe-2/3-Query laufen darf.
+
+**Eingabe:** `vorschlag` (Namensmenge aus §4.3) + die Stufe-1-Kandidaten mit
+`{name, country, families}`.
+**Ausgabe:** bereinigte `auswahl`, die §5 konsumiert.
+
+Der Agent prüft den Vorschlag und entfernt unplausible Varianten:
+
+1. **Sektor/Geschäftsbereich:** Jede vorgeschlagene Variante gegen die gesuchte
+   Entität abgleichen. Beispiel Anker „Siemens Healthineers": „Siemens Mobility",
+   „Siemens Energy", reines „Siemens AG" gehören **nicht** dazu → entfernen. Im
+   Zweifel die spezifischere Variante als Anker neu wählen und §4.3 erneut anwenden.
+2. **Land-Plausibilität:** `country`-Codes sichten. Einzeltreffer in einem
+   unerwarteten Land mit auffälliger Familienzahl ist ein Prüfsignal (Fremdfirma vs.
+   echte Auslandstochter) — bewusst entscheiden, nicht automatisch übernehmen.
+3. **Numerische Dedup-Probe:** Hilfs-Query §6.4 mit der bereinigten `auswahl` fahren
+   und gegen `Σ families_i` der Auswahl prüfen (Regel siehe §7). `consolidated == Σ`
+   ⇒ keine familienübergreifende Überlappung — bei einem echten Konzern verdächtig,
+   Auswahl erneut prüfen.
+4. **Entscheidung dokumentieren:** Finale Variantenliste **und** die bewusst
+   ausgeschlossenen Varianten festhalten und im Report ausweisen (§8
+   Transparenzpflicht).
+
+Erst die so geprüfte `auswahl` geht in §5. Keine Stufe-2/3-Query darf auf einem
+ungeprüften Auto-Suggest-Vorschlag laufen.
 
 ---
 
@@ -235,9 +275,10 @@ WHERE <NAME_FILTER>
 
 ---
 
-## 7. Validierung / Selbstkontrolle (Skill-Logik)
+## 7. Numerische Validierung (Skill-Logik)
 
-Nach der Gruppierung **vor** dem Reporting prüfen:
+Die inhaltliche Prüfung passiert in §4.4. Begleitend dazu, **vor** dem Reporting,
+die numerischen Checks:
 
 1. **Dedup-Plausibilität:** `consolidated_families` (§6.4) muss
    `≤ Σ families_i` (Summe der Einzel-Familienzahlen aus Stufe 1 für die
@@ -245,12 +286,8 @@ Nach der Gruppierung **vor** dem Reporting prüfen:
 2. **Echte Überlappung erwartet:** Bei einem realen Konzern ist meist
    `consolidated_families < Σ families_i` (familienübergreifende Doppelungen).
    `consolidated == Σ` ⇒ Hinweis auf evtl. fälschlich zusammengefasste, in
-   Wahrheit unverbundene Entitäten → Auswahl überprüfen.
-3. **Over-Match-Check (gegen §4.2-Falle):** Wenn Auto-Suggest genutzt wurde, die
-   ausgewählten `name`/`country`-Paare gegen den erwarteten Geschäftsbereich
-   sichten; verdächtige Varianten (anderer Sektor, unplausibles Land) ausschließen
-   und Filter neu bauen.
-4. **`IN`-Listen-Länge:** SQL-String < 10.000 Zeichen halten (Constraint §1). Bei
+   Wahrheit unverbundene Entitäten → zurück zu §4.4, Auswahl überprüfen.
+3. **`IN`-Listen-Länge:** SQL-String < 10.000 Zeichen halten (Constraint §1). Bei
    sehr vielen Varianten ggf. in mehrere Abfragen splitten und
    `COUNT(DISTINCT family_id)` **nicht** über Teilmengen aufaddieren (würde
    Dedup brechen) — stattdessen Filter so kürzen, dass eine Query reicht.
@@ -268,7 +305,7 @@ EINGABE: suchwort, [jahrVon, jahrBis], [anker/label]
 3. anker      = anker ?? kandidaten[0].name                 # meiste Familien
    vorschlag  = { k.name : k in kandidaten
                           if coreNameOf(k.name)==coreNameOf(anker) }   # §4
-4. auswahl    = pruefe_und_bereinige(vorschlag, kandidaten) # §7.3 (Sektor/Land/Plausibilität)
+4. auswahl    = pruefe_und_bereinige(vorschlag, kandidaten) # §4.4 PFLICHT (Sektor/Land/Dedup)
    label      = label ?? anker
 5. filter     = buildNameFilter(auswahl)                    # §5
 6. total      = runSQL( TOTAL_TEMPLATE(filter) )            # §6.4
